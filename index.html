@@ -741,7 +741,7 @@ function initApiKey() {
 // CLAUDE API
 // ═══════════════════════════════════════════════════════════
 function callClaude(messages, maxTokens) {
-  maxTokens = maxTokens || 2500;
+  maxTokens = maxTokens || 5000;
   var key = getApiKey();
   var headers = { 'Content-Type':'application/json', 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' };
   if (key) headers['x-api-key'] = key;
@@ -792,93 +792,79 @@ function parseJSON(str) {
 // ═══════════════════════════════════════════════════════════
 function buildPrompt(txt) {
   let prompt = `
-Jesteś specjalistą w zakresie polskich dokumentów oświatowych (IPET, WOPFU).
-Wypełniasz FORMULARZ – nie piszesz opisu ani opinii.
+Jesteś specjalistą edukacyjnym tworzącym dokumenty WOPFU i IPET.
+Twoim zadaniem jest WYPEŁNIENIE formularza na podstawie dokumentu ORAZ
+standardów pracy zespołu szkolnego.
 
 ZWROT:
 Zwróć WYŁĄCZNIE poprawny obiekt JSON.
-Zacznij od { i zakończ na }.
-Nie dodawaj żadnego tekstu przed ani po JSON.
-Nie używaj markdown.
+Bez komentarzy, bez markdown.
 
 --------------------------------
-FORMAT DOKUMENTU (SZTYWNY):
+ZASADA KLUCZOWA (NAJWAŻNIEJSZA):
+--------------------------------
+Jeśli informacja NIE jest zapisana wprost w dokumencie,
+ALE JEST TYPOWA I ZGODNA Z PRAKTYKĄ OŚWIATOWĄ,
+MOŻESZ JĄ KRÓTKO UZUPEŁNIĆ W FORMIE SYNTEZY.
+
+--------------------------------
+ZASADY OGÓLNE:
+--------------------------------
+- To dokument szkolny do druku
+- Każde pole: 1–2 krótkie zdania
+- Styl: rzeczowy, pedagogiczny
+- Brak opisów, brak uzasadnień
+
+--------------------------------
+SZCZEGÓLNE ZASADY WOPFU:
+--------------------------------
+- wopfu_obszary: ZAWSZE UZUPEŁNIJ
+- zasoby: co uczeń potrafi lub co funkcjonuje prawidłowo
+- trudnosci: realne deficyty wynikające z diagnozy
+- dzialania: JEDNO konkretne działanie wspierające
+
+PRZYKŁADY FORM DZIAŁAŃ:
+- „poprzez jasne zasady i konsekwencję”
+- „poprzez dostosowanie tempa pracy”
+- „poprzez stałe wsparcie nauczyciela”
+
+--------------------------------
+FORMAT JSON – BEZ ZMIAN:
 --------------------------------
 {
   "typ_dokumentu": "orzeczenie | opinia",
-
   "imie_nazwisko": "",
   "data_urodzenia": "",
   "pesel": "",
   "szkola": "",
   "klasa": "",
   "wychowawca": "",
-
   "nr_orzeczenia": "",
   "data_orzeczenia": "",
   "poradnia": "",
   "rodzice": "",
-
   "diagnoza_krotka": "",
   "diagnoza": "",
   "zalecenia": "",
-
   "mocne_strony": "",
   "trudnosci": "",
-
-  "formy_pomocy": [
-    {
-      "forma": "",
-      "sposob": "",
-      "okres": "",
-      "wymiar": "",
-      "osoby": ""
-    }
-  ],
-
-  "wopfu_obszary": [
-    {
-      "nazwa": "",
-      "zasoby": "",
-      "trudnosci": "",
-      "dzialania": ""
-    }
-  ],
-
+  "formy_pomocy": [],
+  "wopfu_obszary": [],
   "cele_terapeutyczne": "",
   "cele_edukacyjne": "",
   "tresci_programowe": "",
   "pomoc_wsparcie": "",
   "wspolpraca_rodzice": ""
 }
-
---------------------------------
-ZASADY KLUCZOWE:
---------------------------------
-- To jest FORMULARZ, nie opis.
-- Każde pole: maks. 1–2 zdania.
-- Język urzędowy, szkolny.
-- Brak uzasadnień, brak definicji.
-- Jeśli brak danych → "".
-
---------------------------------
-WAŻNE:
---------------------------------
-To dokument szkolny do druku (IPET / WOPFU).
-Treści muszą być krótkie, tabelaryczne i syntetyczne.
 `;
 
   if (txt) {
-    prompt += `
---------------------------------
-TEKST DOKUMENTU:
---------------------------------
-${txt}
-`;
+    prompt += `\n\nTEKST DOKUMENTU:\n${txt}`;
   }
 
   return prompt;
 }
+``
 
 // ═══════════════════════════════════════════════════════════
 // PLIKI
