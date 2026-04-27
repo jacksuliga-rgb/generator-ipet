@@ -793,40 +793,46 @@ function parseJSON(str) {
 function buildPrompt(txt) {
   let prompt = `
 Jesteś specjalistą edukacyjnym tworzącym dokumenty WOPFU i IPET.
-Twoim zadaniem jest WYPEŁNIENIE formularza na podstawie dokumentu ORAZ
-standardów pracy zespołu szkolnego.
-
-ZWROT:
-Zwróć WYŁĄCZNIE poprawny obiekt JSON.
-Bez komentarzy, bez markdown.
+...
 
 --------------------------------
-ZASADA KLUCZOWA (NAJWAŻNIEJSZA):
+OBSZARY WOPFU – ZASADY DOPASOWANIA
 --------------------------------
-Jeśli informacja NIE jest zapisana wprost w dokumencie,
-ALE JEST TYPOWA I ZGODNA Z PRAKTYKĄ OŚWIATOWĄ,
-MOŻESZ JĄ KRÓTKO UZUPEŁNIĆ W FORMIE SYNTEZY.
+Dla KAŻDEGO obszaru pisz TYLKO treści z nim zgodne.
 
---------------------------------
-ZASADY OGÓLNE:
---------------------------------
-- To dokument szkolny do druku
-- Każde pole: 1–2 krótkie zdania
-- Styl: rzeczowy, pedagogiczny
-- Brak opisów, brak uzasadnień
+1. Ogólna sprawność fizyczna (motoryka duża):
+   - ruch, koordynacja, równowaga
+   - NIE: komunikacja, emocje
 
---------------------------------
-SZCZEGÓLNE ZASADY WOPFU:
---------------------------------
-- wopfu_obszary: ZAWSZE UZUPEŁNIJ
-- zasoby: co uczeń potrafi lub co funkcjonuje prawidłowo
-- trudnosci: realne deficyty wynikające z diagnozy
-- dzialania: JEDNO konkretne działanie wspierające
+2. Sprawność rąk (motoryka mała / grafomotoryka):
+   - pisanie, manipulacja
+   - NIE: relacje społeczne
 
-PRZYKŁADY FORM DZIAŁAŃ:
-- „poprzez jasne zasady i konsekwencję”
-- „poprzez dostosowanie tempa pracy”
-- „poprzez stałe wsparcie nauczyciela”
+3. Zmysły i integracja sensoryczna:
+   - reakcje na bodźce
+   - NIE: wiedza szkolna
+
+4. Komunikowanie się i artykulacja:
+   - mowa, rozumienie
+   - NIE: motoryka
+
+5. Sfera poznawcza:
+   - uwaga, pamięć
+   - NIE: emocje
+
+6. Sfera emocjonalno-motywacyjna:
+   - emocje, motywacja
+   - NIE: mowa
+
+7. Sfera społeczna:
+   - relacje, współpraca
+   - NIE: percepcja
+
+8. Samodzielność i samoobsługa:
+   - czynności dnia codziennego
+   - NIE: wiedza szkolna
+
+JEŚLI TREŚĆ NIE PASUJE DO OBSZARU – ZOSTAW POLE PUSTE.
 
 --------------------------------
 FORMAT JSON – BEZ ZMIAN:
