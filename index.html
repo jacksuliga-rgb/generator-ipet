@@ -833,7 +833,17 @@ Dla KAŻDEGO obszaru pisz TYLKO treści z nim zgodne.
    - NIE: wiedza szkolna
 
 JEŚLI TREŚĆ NIE PASUJE DO OBSZARU – ZOSTAW POLE PUSTE.
+WAŻNE – RODZAJ DOKUMENTU:
 
+Jeśli dokument jest OPINIĄ:
+- NIE generuj WOPFU
+- NIE generuj IPET
+- w polu "wopfu_obszary" zwróć pustą tablicę []
+- w polu "formy_pomocy" możesz zwrócić dane
+- używaj określeń „opinia”, nie „orzeczenie”
+
+Jeśli dokument jest ORZECZENIEM:
+- generuj WOPFU i IPET normalnie
 --------------------------------
 FORMAT JSON – BEZ ZMIAN:
 --------------------------------
@@ -976,13 +986,40 @@ function analyzeText() {
 // APPLY PARSED
 // ═══════════════════════════════════════════════════════════
 function applyParsed(parsed) {
+  if (!parsed || !parsed.typ_dokumentu) {
+    showError('Nie udało się odczytać danych');
+    return;
+  }
+
   fillFields(parsed);
-  if (parsed.typ_dokumentu==='opinia') setDocType('opinia'); else setDocType('orzeczenie');
+
+  const isOpinia = parsed.typ_dokumentu === 'opinia';
+
+  if (isOpinia) {
+    // ✅ OPINIA — NIE MA WOPFU
+    setDocType('opinia');
+
+    // NIE wołamy:
+    // initWopfu(parsed);
+    // initIpet(parsed);
+
+    document.getElementById('aiFilledAlert').style.display = 'flex';
+    LAST_PARSED_DATA = parsed;
+
+    showToast('✅ Dane z opinii odczytane');
+    return;
+  }
+
+  // ✅ ORZECZENIE — normalny flow
+  setDocType('orzeczenie');
+
   initWopfu(parsed);
   initIpet(parsed);
+
   if (parsed.diagnoza) showDostosowaniaPanel(parsed.diagnoza);
-  document.getElementById('aiFilledAlert').style.display='flex';
-  LAST_PARSED_DATA=parsed;
+
+  document.getElementById('aiFilledAlert').style.display = 'flex';
+  LAST_PARSED_DATA = parsed;
 }
 
 // ═══════════════════════════════════════════════════════════
