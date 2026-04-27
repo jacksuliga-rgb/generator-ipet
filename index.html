@@ -1,0 +1,1971 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generator IPET & WOPFU</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+:root {
+  --navy:#0f1f3d;--navy2:#1a2f54;--teal:#0d9488;--teal2:#14b8a6;
+  --amber:#f59e0b;--red:#ef4444;--bg:#f0f4f8;--gray:#64748b;--gray2:#94a3b8;
+  --border:#e2e8f0;--sh:0 4px 24px rgba(15,31,61,.1);--sh2:0 8px 40px rgba(15,31,61,.15);--r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--navy);min-height:100vh}
+.header{background:linear-gradient(135deg,var(--navy),var(--navy2));color:white;padding:28px 32px 24px;position:sticky;top:0;z-index:100;box-shadow:var(--sh2)}
+.header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:16px}
+.header-title{font-size:1.3rem;font-weight:700}
+.header-sub{font-size:.75rem;color:rgba(255,255,255,.55);margin-top:2px}
+.main{max-width:1100px;margin:0 auto;padding:32px 20px 80px}
+.steps{display:flex;align-items:center;margin-bottom:32px;background:white;border-radius:var(--r);padding:6px;box-shadow:var(--sh)}
+.step{flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;font-size:.78rem;font-weight:600;color:var(--gray2);cursor:pointer;transition:all .2s}
+.step.active{background:var(--navy);color:white}
+.step.done{color:var(--teal)}
+.step-num{width:22px;height:22px;border-radius:50%;background:currentColor;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:white;flex-shrink:0}
+.step.active .step-num{background:var(--teal2)}.step.done .step-num{background:var(--teal)}
+.step-arrow{color:var(--border);font-size:.8rem}
+.card{background:white;border-radius:var(--r);box-shadow:var(--sh);padding:28px;margin-bottom:20px}
+.card-title{font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:8px}
+.upload-zone{border:2.5px dashed var(--teal2);border-radius:var(--r);padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;background:rgba(13,148,136,.03)}
+.upload-zone:hover{background:rgba(13,148,136,.07);border-color:var(--teal)}
+.upload-zone input{display:none}
+.preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-top:16px}
+.preview-img{position:relative;border-radius:8px;overflow:hidden;aspect-ratio:3/4;box-shadow:var(--sh)}
+.preview-img img{width:100%;height:100%;object-fit:cover}
+.preview-img .del{position:absolute;top:4px;right:4px;background:rgba(239,68,68,.9);color:white;border:none;width:22px;height:22px;border-radius:50%;font-size:.7rem;cursor:pointer}
+.preview-order{position:absolute;bottom:4px;left:4px;background:rgba(15,31,61,.7);color:white;font-size:.65rem;font-weight:700;padding:2px 6px;border-radius:10px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;border:none;font-family:'Sora',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,var(--navy),var(--navy2));color:white;box-shadow:0 4px 14px rgba(15,31,61,.3)}
+.btn-primary:hover{transform:translateY(-1px)}.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-teal{background:linear-gradient(135deg,var(--teal),#0f766e);color:white;box-shadow:0 4px 14px rgba(13,148,136,.3)}
+.btn-teal:hover{transform:translateY(-1px)}
+.btn-amber{background:linear-gradient(135deg,var(--amber),#d97706);color:white}
+.btn-outline{background:transparent;border:2px solid var(--border);color:var(--gray)}
+.btn-outline:hover{border-color:var(--navy);color:var(--navy)}
+.btn-sm{padding:6px 14px;font-size:.75rem}
+.btn-danger{background:transparent;border:2px solid #fca5a5;color:#dc2626}
+.btn-danger:hover{background:#fef2f2}
+.progress-bar{height:4px;background:var(--border);border-radius:4px;overflow:hidden;margin:12px 0}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--teal2));border-radius:4px;transition:width .4s ease}
+.loading-msg{font-size:.8rem;color:var(--gray);font-style:italic;margin-top:4px}
+.spin{display:inline-block;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid.cols3{grid-template-columns:1fr 1fr 1fr}
+.form-grid.full{grid-template-columns:1fr}
+@media(max-width:640px){.form-grid,.form-grid.cols3{grid-template-columns:1fr}}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg.span2{grid-column:span 2}.fg.span3{grid-column:span 3}
+label{font-size:.72rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.04em}
+input[type=text],input[type=date],select,textarea{width:100%;padding:9px 12px;border:2px solid var(--border);border-radius:8px;font-family:'Sora',sans-serif;font-size:.82rem;color:var(--navy);transition:border-color .15s;outline:none;background:white}
+input:focus,select:focus,textarea:focus{border-color:var(--teal)}
+textarea{resize:vertical;min-height:80px;line-height:1.5}
+textarea.tall{min-height:120px}textarea.xtall{min-height:160px}
+.sec{font-size:.72rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.06em;margin:22px 0 12px;padding-bottom:6px;border-bottom:2px solid rgba(13,148,136,.15);display:flex;align-items:center;gap:6px}
+.ftable{width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:6px}
+.ftable th{background:var(--navy);color:white;padding:8px 10px;font-size:.7rem;text-align:left;font-weight:600}
+.ftable td{border:1px solid var(--border);padding:6px 9px;vertical-align:middle;font-size:.8rem}
+.ftable td input{width:100%;border:none;font-size:.78rem;font-family:'Sora',sans-serif;background:transparent;outline:none;padding:2px 0}
+.ftable tr:nth-child(even) td{background:#f8fafc}
+.add-row-btn{display:block;width:100%;padding:9px;border:2px dashed var(--border);border-top:none;background:#f8fafc;color:var(--gray);cursor:pointer;font-size:.75rem;font-family:'Sora',sans-serif;transition:all .15s}
+.add-row-btn:hover{background:#eef2ff;color:var(--navy)}
+.del-row{background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:.9rem;padding:0 6px}
+.del-row:hover{color:var(--red)}
+.tab{padding:8px 16px;border-radius:8px;cursor:pointer;font-size:.78rem;font-weight:600;border:2px solid var(--border);color:var(--gray);background:white;transition:all .15s}
+.tab.active{background:var(--navy);color:white;border-color:var(--navy)}
+.ocr-result{background:#f8fafc;border:2px solid var(--border);border-radius:var(--r);padding:16px;font-size:.78rem;line-height:1.7;color:var(--navy);max-height:300px;overflow-y:auto;white-space:pre-wrap;font-family:'JetBrains Mono',monospace}
+.out-tab{flex:1;padding:12px 16px;border-radius:var(--r);text-align:center;cursor:pointer;font-weight:700;font-size:.82rem;border:2px solid var(--border);color:var(--gray);background:white;transition:all .2s}
+.out-tab.active{border-color:var(--navy);background:var(--navy);color:white}
+.alert{padding:12px 16px;border-radius:8px;font-size:.8rem;display:flex;align-items:flex-start;gap:10px;margin-bottom:14px}
+.alert-info{background:#eff6ff;border:1.5px solid #bfdbfe;color:#1d4ed8}
+.alert-warn{background:#fffbeb;border:1.5px solid #fde68a;color:#92400e}
+.alert-ok{background:#f0fdf4;border:1.5px solid #bbf7d0;color:#166534}
+.site-footer{background:var(--navy);color:rgba(255,255,255,.7);text-align:center;padding:24px 20px 30px;font-size:.76rem;line-height:1.8;margin-top:40px}
+.site-footer a{color:rgba(255,255,255,.85);text-decoration:none}
+.footer-badge{display:inline-block;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:3px 11px;font-size:.7rem;margin:2px 3px}
+.suppi-btn{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff!important;text-decoration:none;padding:8px 18px;border-radius:20px;font-size:.78rem;font-weight:700;box-shadow:0 2px 10px rgba(234,88,12,.35);margin-top:10px}
+.dost-panel{background:#f0fdf4;border:2px solid #bbf7d0;border-radius:var(--r);padding:16px;margin-bottom:14px}
+.dost-items{display:flex;flex-direction:column;gap:4px}
+.dost-item{display:flex;align-items:flex-start;gap:8px;font-size:.78rem;line-height:1.5;color:var(--navy);cursor:pointer;padding:4px 6px;border-radius:6px;transition:background .1s}
+.dost-item:hover{background:#dcfce7}
+.dost-item input[type=checkbox]{margin-top:3px;flex-shrink:0;accent-color:var(--teal)}
+.dost-apply-btn{margin-top:12px;width:100%;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--teal),#0f766e);color:white;font-family:'Sora',sans-serif;font-weight:700;font-size:.8rem;cursor:pointer}
+.dost-toggle{background:rgba(13,148,136,.1);border:1.5px solid var(--teal2);color:var(--teal);border-radius:6px;padding:4px 10px;font-size:.72rem;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.student-list-panel{background:white;border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:20px}
+.student-list-header{background:var(--navy);color:white;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;font-size:.82rem;font-weight:700;cursor:pointer}
+.student-list-body{display:none}.student-list-body.open{display:block}
+.student-item{display:flex;align-items:center;gap:10px;padding:10px 18px;border-bottom:1px solid var(--border);cursor:pointer;font-size:.82rem}
+.student-item:hover{background:#f0fdf4}
+.student-item .si-name{font-weight:700;color:var(--navy);flex:1}
+.student-item .si-meta{font-size:.72rem;color:var(--gray)}
+.student-item .si-del{background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:.85rem;padding:2px 6px}
+.student-item .si-del:hover{color:var(--red)}
+.student-empty{padding:16px 18px;color:var(--gray);font-size:.8rem;font-style:italic}
+.wopfu-area{border:2px solid var(--border);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
+.wopfu-area-header{background:var(--navy);color:white;padding:8px 14px;font-size:.78rem;font-weight:700;display:flex;align-items:center;justify-content:space-between}
+.wopfu-area-grid{display:grid;grid-template-columns:1fr 1fr 1fr}
+@media(max-width:640px){.wopfu-area-grid{grid-template-columns:1fr}}
+.wopfu-area-col{padding:10px 12px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:4px}
+.wopfu-area-col:last-child{border-right:none}
+.wopfu-area-col label{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.wopfu-area-col label.ok{color:#16a34a}.wopfu-area-col label.nok{color:#dc2626}.wopfu-area-col label.next{color:#2563eb}
+.wopfu-area-col textarea{border:1.5px solid var(--border);border-radius:6px;padding:7px 9px;font-size:.78rem;resize:vertical;min-height:80px;font-family:'Sora',sans-serif}
+.ppp-item{display:flex;align-items:flex-start;background:var(--bg);padding:10px 12px;border-radius:8px;border:1.5px solid var(--border);transition:all .2s}
+.ppp-item.checked{border-color:var(--teal);background:rgba(13,148,136,.07)}
+.ppp-item input[type=checkbox]{margin-top:3px;margin-right:10px;width:16px;height:16px;accent-color:var(--teal);flex-shrink:0}
+.ppp-label{font-size:.8rem;color:var(--navy);font-weight:600}
+.ppp-hours-default{font-size:.72rem;color:var(--gray);margin-top:2px}
+.ppp-hours-input{margin-top:7px;padding:4px 8px;border:1.5px solid var(--teal2);border-radius:6px;font-family:'Sora',sans-serif;font-size:.78rem;width:100%;display:none;background:white;color:var(--navy)}
+.cele-panel{background:#f0f9ff;border:2px solid #bae6fd;border-radius:var(--r);padding:16px;margin-bottom:16px}
+.cele-item{background:white;border:1.5px solid #bae6fd;border-radius:8px;padding:12px 14px;cursor:pointer;display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.cele-item:hover{border-color:#0ea5e9;background:#f0f9ff}
+.cele-item-body{flex:1}
+.cele-item-obszar{font-size:.68rem;font-weight:700;color:#0369a1;text-transform:uppercase;margin-bottom:3px}
+.cele-item-ogolny{font-size:.78rem;font-weight:600;color:var(--navy);margin-bottom:3px}
+.cele-item-pomiar{font-size:.7rem;color:var(--teal);margin-top:4px;font-style:italic}
+.cele-add-btn{background:var(--teal);color:white;border:none;border-radius:6px;padding:4px 10px;font-size:.72rem;font-family:'Sora',sans-serif;font-weight:700;cursor:pointer;flex-shrink:0}
+.hidden{display:none!important}
+.nav-btns{display:flex;gap:10px;justify-content:space-between;margin-top:24px;flex-wrap:wrap}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:white;padding:10px 20px;border-radius:8px;font-size:.82rem;font-weight:600;box-shadow:var(--sh2);transition:transform .3s;z-index:9999;white-space:nowrap}
+#toast.show{transform:translateX(-50%) translateY(0)}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,31,61,.55);z-index:2000;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:white;border-radius:var(--r);box-shadow:var(--sh2);width:100%;max-width:580px;max-height:90vh;overflow-y:auto}
+.modal-head{background:var(--navy);color:white;padding:16px 20px;border-radius:var(--r) var(--r) 0 0;display:flex;align-items:center;justify-content:space-between}
+.modal-head button{background:none;border:none;color:white;font-size:1.3rem;cursor:pointer;line-height:1}
+.modal-body{padding:20px}
+.formy-list{border:2px solid var(--border);border-radius:8px;overflow:hidden;max-height:260px;overflow-y:auto;margin-bottom:16px}
+.formy-cat{padding:5px 14px 3px;font-size:.65rem;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.06em;background:var(--bg)}
+.formy-item{padding:9px 14px;font-size:.8rem;cursor:pointer;color:var(--navy);border-bottom:1px solid var(--border)}
+.formy-item:hover{background:rgba(13,148,136,.07)}
+.formy-item.selected{background:rgba(13,148,136,.12);font-weight:700;color:var(--teal)}
+
+/* ── EDYTOWALNA TABELA W PODGLĄDZIE WYDRUKU ── */
+.print-editable-table{width:100%;border-collapse:collapse;margin-bottom:14px}
+.print-editable-table th{background:#1a2f54;color:white;padding:8px 10px;font-size:9pt;text-align:left;font-weight:600;border:1px solid #ccc}
+.print-editable-table td{border:1px solid #ccc;padding:0;vertical-align:middle}
+.print-editable-table td[contenteditable]{padding:7px 9px;font-size:9pt;font-family:Arial,sans-serif;min-height:32px;outline:none;transition:background .15s}
+.print-editable-table td[contenteditable]:focus{background:#fffbeb;box-shadow:inset 0 0 0 2px #f59e0b}
+.print-editable-table td[contenteditable]:empty:before{content:attr(data-placeholder);color:#aaa;font-style:italic;pointer-events:none}
+.print-editable-table tr:nth-child(even) td{background:#f9fafb}
+.print-editable-table tr:nth-child(even) td[contenteditable]:focus{background:#fffbeb}
+.editable-hint{display:flex;align-items:center;gap:8px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:.78rem;color:#92400e;margin-bottom:10px}
+.add-print-row-btn{display:block;width:100%;padding:9px;border:2px dashed #e2e8f0;border-top:none;background:#f8fafc;color:#64748b;cursor:pointer;font-size:.75rem;font-family:'Sora',sans-serif;transition:all .15s;text-align:center}
+.add-print-row-btn:hover{background:#eef2ff;color:#0f1f3d}
+.del-print-row{background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:.9rem;padding:4px 8px;vertical-align:middle}
+.del-print-row:hover{color:#ef4444}
+
+@media print{
+  .header,.steps,.nav-btns,.site-footer,.modal-overlay,.editable-hint,.add-print-row-btn,.del-print-row,.no-print{display:none!important}
+  .card{box-shadow:none;border:1px solid #ccc}
+  body{background:white}
+  .print-editable-table td[contenteditable]{background:white!important;box-shadow:none!important}
+  .print-editable-table td[contenteditable]:empty:before{content:''!important}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div style="font-size:2rem">📋</div>
+    <div>
+      <div class="header-title">Generator IPET & WOPFU</div>
+      <div class="header-sub">Stowarzyszenie 2piny · Łódź &nbsp;·&nbsp; wgraj orzeczenie → AI generuje dokumenty</div>
+    </div>
+  </div>
+</header>
+
+<!-- MODAL: DODAJ FORMĘ POMOCY -->
+<div id="formyModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span style="font-weight:700;font-size:.95rem">➕ Dodaj formę pomocy</span>
+      <button onclick="closeFormyModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg" style="margin-bottom:14px">
+        <label>Forma pomocy — wpisz lub wybierz z listy</label>
+        <input type="text" id="modal_forma" placeholder="Zacznij pisać aby filtrować..." oninput="filterFormyList(this.value)">
+      </div>
+      <div class="formy-list" id="formyListContainer"></div>
+      <div class="form-grid" style="margin-bottom:16px">
+        <div class="fg">
+          <label>Sposób realizacji</label>
+          <select id="modal_sposob">
+            <option value="indywidualnie">indywidualnie</option>
+            <option value="grupowo">grupowo</option>
+            <option value="indywidualnie / grupowo" selected>indywidualnie / grupowo</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Okres</label>
+          <select id="modal_okres">
+            <option value="rok szkolny" selected>rok szkolny</option>
+            <option value="I semestr">I semestr</option>
+            <option value="II semestr">II semestr</option>
+            <option value="cały etap edukacyjny">cały etap edukacyjny</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Wymiar godzin</label>
+          <input type="text" id="modal_godziny" placeholder="np. 45 min / tydzień">
+        </div>
+        <div class="fg">
+          <label>Osoby realizujące</label>
+          <input type="text" id="modal_osoby" placeholder="np. pedagog szkolny">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-outline" onclick="closeFormyModal()">Anuluj</button>
+        <button class="btn btn-teal" onclick="confirmFormyModal()">✅ Dodaj do tabeli</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main class="main">
+  <div class="steps">
+    <div class="step active" id="stp1" onclick="goStep(1)"><div class="step-num">1</div><span id="stp1label">Orzeczenie</span></div>
+    <span class="step-arrow">›</span>
+    <div class="step" id="stp2" onclick="goStep(2)"><div class="step-num">2</div>Dane ucznia</div>
+    <span class="step-arrow">›</span>
+    <div class="step" id="stp3" onclick="goStep(3)"><div class="step-num">3</div>WOPFU</div>
+    <span class="step-arrow">›</span>
+    <div class="step" id="stp4" onclick="goStep(4)"><div class="step-num">4</div>IPET</div>
+    <span class="step-arrow">›</span>
+    <div class="step" id="stp5" onclick="goStep(5)"><div class="step-num">5</div>Dostosowania</div>
+    <span class="step-arrow">›</span>
+    <div class="step" id="stp6" onclick="goStep(6)"><div class="step-num">6</div>Drukuj</div>
+  </div>
+
+  <!-- API KEY BANNER -->
+  <div id="apiBanner" style="background:linear-gradient(135deg,#1e3a5f,#0f2d4a);border-radius:var(--r);padding:18px 22px;margin-bottom:24px;box-shadow:var(--sh2)">
+    <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
+      <div style="font-size:1.8rem;flex-shrink:0">🔑</div>
+      <div style="flex:1;min-width:220px">
+        <div style="color:white;font-weight:700;font-size:.9rem;margin-bottom:3px">Klucz API Anthropic (Claude)</div>
+        <div style="color:rgba(255,255,255,.6);font-size:.74rem;margin-bottom:10px">Wymagany do analizy dokumentów przez AI. Uzyskaj bezpłatny klucz na <strong style="color:rgba(255,255,255,.85)">console.anthropic.com → API Keys</strong>. Klucz zapisywany tylko w Twojej przeglądarce.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off"
+            style="flex:1;min-width:220px;padding:9px 14px;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:8px;color:white;font-family:'JetBrains Mono',monospace;font-size:.8rem;outline:none">
+          <button onclick="saveApiKey()" style="padding:9px 18px;border-radius:8px;border:none;background:var(--teal);color:white;font-family:'Sora',sans-serif;font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap">💾 Zapisz</button>
+        </div>
+        <div id="apiKeyStatus" style="font-size:.72rem;margin-top:6px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KROK 1 -->
+  <div id="step1">
+    <div class="student-list-panel">
+      <div class="student-list-header" onclick="toggleStudentList()">
+        <span>👥 Zapisani uczniowie <span id="studentCount" style="opacity:.6;font-weight:400"></span></span>
+        <span id="studentArrow">▼</span>
+      </div>
+      <div class="student-list-body" id="studentListBody">
+        <div id="studentListContent"></div>
+        <div style="padding:10px 18px;border-top:1px solid var(--border)">
+          <button class="btn btn-outline btn-sm" onclick="newStudent()">+ Nowy uczeń</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📄 Rodzaj dokumentu</div>
+      <div style="display:flex;background:var(--bg);border-radius:10px;padding:4px;gap:4px">
+        <button id="dtype-orz" onclick="setDocType('orzeczenie')" style="flex:1;padding:12px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'Sora',sans-serif;font-size:.82rem;font-weight:700;background:var(--navy);color:white">
+          📋 Orzeczenie<br><span style="font-weight:400;font-size:.7rem;opacity:.8">WOPFU + IPET + Karta Dostosowań</span>
+        </button>
+        <button id="dtype-op" onclick="setDocType('opinia')" style="flex:1;padding:12px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'Sora',sans-serif;font-size:.82rem;font-weight:700;background:transparent;color:var(--gray)">
+          📝 Opinia poradni<br><span style="font-weight:400;font-size:.7rem">Karta Dostosowań + Plan pomocy</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" id="uploadTitle">📸 Wgraj zdjęcia orzeczenia</div>
+      <div class="alert alert-info"><span>ℹ️</span><span>Wgraj strony dokumentu jako zdjęcia lub PDF. AI odczyta tekst i wypełni pola automatycznie.</span></div>
+      <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileIn').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+        <input type="file" id="fileIn" accept="image/*,.pdf" multiple onchange="handleFiles(this.files)">
+        <div style="font-size:2.5rem;margin-bottom:10px">📄</div>
+        <div style="font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:4px">Kliknij lub przeciągnij zdjęcia dokumentu</div>
+        <div style="font-size:.78rem;color:var(--gray)">JPG, PNG, HEIC, PDF · wiele plików naraz</div>
+      </div>
+      <div class="preview-grid" id="previewGrid"></div>
+    </div>
+
+    <div class="card" style="margin-top:0">
+      <div class="card-title" style="cursor:pointer" onclick="toggleManual()">
+        ✏️ Alternatywnie: wklej tekst dokumentu ręcznie
+        <span id="manualArrow" style="font-size:.8rem;color:var(--gray);margin-left:auto">▼ rozwiń</span>
+      </div>
+      <div id="manualSection" style="display:none">
+        <div class="alert alert-warn" style="margin-bottom:12px"><span>⚠️</span><span>Skopiuj tekst z dokumentu i wklej poniżej.</span></div>
+        <div class="fg">
+          <label id="manualLabel">Treść orzeczenia</label>
+          <textarea id="manualText" class="xtall" style="min-height:200px" placeholder="Wklej tutaj tekst dokumentu..."></textarea>
+        </div>
+        <div style="margin-top:10px"><button class="btn btn-teal" onclick="analyzeText()">🤖 Analizuj tekst</button></div>
+      </div>
+    </div>
+
+    <div class="card" id="ocrCard" style="display:none">
+      <div class="card-title">🤖 Analiza AI</div>
+      <div class="progress-bar" id="ocrProg" style="display:none"><div class="progress-fill" id="ocrFill" style="width:0%"></div></div>
+      <div class="loading-msg" id="ocrMsg"></div>
+      <div id="ocrPreview" style="margin-top:12px;display:none">
+        <div style="font-size:.72rem;font-weight:700;color:var(--gray);margin-bottom:6px;text-transform:uppercase">Odpowiedź AI (podgląd)</div>
+        <div class="ocr-result" id="ocrText"></div>
+      </div>
+    </div>
+
+    <div class="nav-btns">
+      <button class="btn btn-danger" onclick="newStudent()">🗑 Wyczyść formularz</button>
+      <button class="btn btn-primary" id="btnAnalyze" onclick="analyzeImages()" disabled>🤖 Analizuj dokument</button>
+    </div>
+  </div>
+
+  <!-- KROK 2 -->
+  <div id="step2" class="hidden">
+    <div class="card">
+      <div class="card-title">👤 Dane ucznia</div>
+      <div class="alert alert-ok" id="aiFilledAlert" style="display:none"><span>✅</span><span>AI wypełniła pola. Sprawdź i popraw jeśli potrzeba.</span></div>
+      <div class="sec">🎓 Metryczka</div>
+      <div class="form-grid cols3">
+        <div class="fg"><label>Imię i nazwisko</label><input type="text" id="f_imie"></div>
+        <div class="fg"><label>Data urodzenia</label><input type="text" id="f_dob" placeholder="DD.MM.RRRR"></div>
+        <div class="fg"><label>PESEL</label><input type="text" id="f_pesel"></div>
+        <div class="fg"><label>Szkoła</label><input type="text" id="f_szkola"></div>
+        <div class="fg"><label>Klasa</label><input type="text" id="f_klasa" oninput="detectEtapFromKlasa(this.value)"></div>
+        <div class="fg"><label>Wiek</label><input type="text" id="f_wiek"></div>
+        <div class="fg"><label>Wychowawca</label><input type="text" id="f_wychowawca"></div>
+        <div class="fg"><label>Rok szkolny</label><input type="text" id="f_rok"></div>
+        <div class="fg"><label>Okres</label><input type="text" id="f_okres"></div>
+      </div>
+      <div class="sec">🏫 Etap edukacyjny</div>
+      <div style="display:flex;background:var(--bg);border-radius:10px;padding:4px;gap:4px;margin-bottom:4px">
+        <button id="etap-wczesno" onclick="setEtap('wczesnoszkolna')" style="flex:1;padding:10px 8px;border-radius:8px;border:none;cursor:pointer;font-family:'Sora',sans-serif;font-size:.75rem;font-weight:700;background:var(--navy);color:white">🎒 Wczesnoszkolna<br><span style="font-weight:400;font-size:.67rem;opacity:.8">klasy 1–3</span></button>
+        <button id="etap-sp" onclick="setEtap('sp')" style="flex:1;padding:10px 8px;border-radius:8px;border:none;cursor:pointer;font-family:'Sora',sans-serif;font-size:.75rem;font-weight:700;background:transparent;color:var(--gray)">📚 Szkoła podstawowa<br><span style="font-weight:400;font-size:.67rem">klasy 4–8</span></button>
+        <button id="etap-pp" onclick="setEtap('ponadpodstawowa')" style="flex:1;padding:10px 8px;border-radius:8px;border:none;cursor:pointer;font-family:'Sora',sans-serif;font-size:.75rem;font-weight:700;background:transparent;color:var(--gray)">🎓 Ponadpodstawowa<br><span style="font-weight:400;font-size:.67rem">LO / Tech / Zawodowa</span></button>
+      </div>
+      <div id="etapInfo" style="font-size:.72rem;color:var(--gray);margin-top:4px"></div>
+      <div class="sec" id="secDokument">📄 Orzeczenie / Opinia</div>
+      <div class="form-grid">
+        <div class="fg"><label>Numer</label><input type="text" id="f_nr_orzeczenia"></div>
+        <div class="fg"><label>Data</label><input type="text" id="f_data_orzeczenia"></div>
+        <div class="fg"><label>Poradnia</label><input type="text" id="f_poradnia"></div>
+        <div class="fg"><label>Rodzice/opiekunowie</label><input type="text" id="f_rodzice"></div>
+      </div>
+      <div class="sec">🧠 Diagnoza</div>
+      <div class="form-grid"><div class="fg"><label>Krótkie rozpoznanie</label><input type="text" id="f_diagnoza_krotka" placeholder="np. Uczeń w spektrum autyzmu (ASD)"></div></div>
+      <div class="form-grid full" style="margin-top:10px">
+        <div class="fg"><label>Pełna diagnoza</label><textarea id="f_diagnoza" class="tall"></textarea></div>
+        <div class="fg"><label id="labelZalecenia">Zalecenia z orzeczenia</label><textarea id="f_zalecenia" class="xtall"></textarea></div>
+      </div>
+      <div class="sec">💪 Profil ucznia</div>
+      <div class="form-grid full">
+        <div class="fg"><label>Mocne strony</label><textarea id="f_mocne" class="tall"></textarea></div>
+        <div class="fg"><label>Trudności</label><textarea id="f_trudnosci" class="tall"></textarea></div>
+      </div>
+    </div>
+    <div class="nav-btns">
+      <button class="btn btn-danger" onclick="newStudent()">🗑 Wyczyść</button>
+      <button class="btn btn-teal" onclick="saveCurrentStudent()">💾 Zapisz ucznia</button>
+      <button class="btn btn-primary" id="step2NextBtn" onclick="goStep(3)">Dalej: WOPFU →</button>
+    </div>
+  </div>
+
+  <!-- KROK 3 -->
+  <div id="step3" class="hidden">
+    <div class="card">
+      <div class="card-title">📊 WOPFU</div>
+      <div class="sec">📋 Źródła informacji</div>
+      <table class="ftable"><thead><tr><th style="width:22%">ŹRÓDŁO</th><th style="width:39%">ROZPOZNANIE</th><th style="width:35%">ZALECENIA</th><th style="width:30px"></th></tr></thead><tbody id="wopfuBody"></tbody></table>
+      <button class="add-row-btn" onclick="addWopfuRow()">+ Dodaj źródło</button>
+      <div class="sec" style="margin-top:24px">🧩 Obszary funkcjonowania</div>
+      <div id="wopfuAreas"></div>
+      <button class="add-row-btn" style="margin-top:4px" onclick="addWopfuArea()">+ Dodaj obszar</button>
+      <div class="sec" style="margin-top:24px">🎯 Priorytety</div>
+      <div class="fg"><textarea id="w_priorytety" class="tall" placeholder="Priorytety pracy na najbliższy semestr/rok..."></textarea></div>
+      <div class="sec">👥 Podpisy</div>
+      <div class="form-grid">
+        <div class="fg"><label>Wychowawca</label><input type="text" id="w_podpis1"></div>
+        <div class="fg"><label>Pedagog/Psycholog</label><input type="text" id="w_podpis2"></div>
+        <div class="fg"><label>Nauczyciel</label><input type="text" id="w_podpis3"></div>
+        <div class="fg"><label>Specjalista</label><input type="text" id="w_podpis4"></div>
+      </div>
+    </div>
+    <div class="nav-btns">
+      <button class="btn btn-outline" onclick="goStep(2)">← Wróć</button>
+      <button class="btn btn-danger" onclick="newStudent()">🗑 Wyczyść</button>
+      <button class="btn btn-primary" onclick="goStep(4)">Dalej: IPET →</button>
+    </div>
+  </div>
+
+  <!-- KROK 4 -->
+  <div id="step4" class="hidden">
+    <div class="card">
+      <div class="card-title">📝 IPET
+        <button class="dost-toggle" onclick="showDostosowaniaPanel(document.getElementById('f_diagnoza').value)" style="margin-left:auto">🔍 Dostosowania</button>
+      </div>
+      <div id="dostPanel" style="display:none">
+        <div class="dost-panel">
+          <div style="font-size:.8rem;font-weight:700;color:#166534;margin-bottom:12px">✅ Dostosowania <span id="dostDiagLabel" style="font-weight:400;font-size:.75rem"></span></div>
+          <div id="dostCategories"></div>
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <button class="dost-apply-btn" style="flex:1" onclick="applyDostosowania('i_pomoc_wsparcie')">✅ Wstaw do "Rodzaj pomocy"</button>
+            <button class="dost-apply-btn" style="flex:1;background:linear-gradient(135deg,var(--navy),var(--navy2))" onclick="applyDostosowania('i_cele_edu')">✅ Wstaw do "Cele edukacyjne"</button>
+          </div>
+        </div>
+      </div>
+      <div class="cele-panel" id="celeSugestiePanel" style="display:none">
+        <div style="font-size:.8rem;font-weight:700;color:#0369a1;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+          <span>💡 Propozycje celów</span>
+          <button onclick="document.getElementById('celeSugestiePanel').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:1rem;color:#64748b">✕</button>
+        </div>
+        <div id="celeSugestieList"><div style="font-size:.8rem;color:var(--gray);padding:10px;text-align:center">Kliknij „Generuj sugestie celów" aby AI przygotowało propozycje.</div></div>
+      </div>
+      <div class="sec">🎯 Cele</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+        <div style="font-size:.78rem;color:var(--gray)">Cele muszą być operacyjne, mierzalne i określone w czasie (§6 Rozp. MEN 9.08.2017).</div>
+        <button class="btn btn-teal" onclick="generateCeleSugestie()" id="btnGenerujCele">💡 Generuj sugestie celów</button>
+        <button class="btn btn-primary" onclick="generateCeleAI()" id="btnGenerujCeleAuto" style="font-size:.75rem;opacity:.85">🤖 Wpisz cele automatycznie</button>
+      </div>
+      <div id="celeAiStatus" style="display:none;margin-bottom:12px">
+        <div class="progress-bar"><div class="progress-fill" id="celeFill" style="width:0%"></div></div>
+        <div class="loading-msg" id="celeMsg"></div>
+      </div>
+      <div class="form-grid full">
+        <div class="fg"><label>Cele terapeutyczne</label><textarea id="i_cele_ter" class="tall"></textarea></div>
+        <div class="fg"><label>Cele edukacyjne</label><textarea id="i_cele_edu" class="tall"></textarea></div>
+        <div class="fg"><label>Zasadnicze treści programowe</label><textarea id="i_tresci" class="tall"></textarea></div>
+        <div class="fg span2">
+          <label>Formy pomocy psychologiczno-pedagogicznej i rewalidacji</label>
+          <div style="font-size:.78rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.04em;margin:10px 0 6px;padding-bottom:4px;border-bottom:2px solid rgba(13,148,136,.15)">1. Pomoc psychologiczno-pedagogiczna</div>
+          <div id="ppp-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;margin-bottom:16px"></div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.04em;margin:10px 0 6px;padding-bottom:4px;border-bottom:2px solid rgba(13,148,136,.15)">2. Zajęcia rewalidacyjne</div>
+          <div id="rewalidacja-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px;margin-bottom:16px"></div>
+          <div style="font-size:.78rem;font-weight:700;color:var(--navy);margin:14px 0 6px">Szczegóły i dodatkowe ustalenia</div>
+          <textarea id="i_pomoc_wsparcie" class="tall" placeholder="Dodatkowe ustalenia, przydział godzin..."></textarea>
+        </div>
+      </div>
+      <div class="sec">🏥 Formy pomocy — tabela szczegółowa</div>
+      <table class="ftable" id="pomocTable">
+        <thead><tr><th>FORMA POMOCY</th><th>SPOSÓB</th><th>OKRES</th><th>GODZINY</th><th>OSOBY</th><th style="width:30px"></th></tr></thead>
+        <tbody id="pomocBody"></tbody>
+      </table>
+      <button class="add-row-btn" onclick="openFormyModal()">+ Dodaj formę pomocy</button>
+      <div class="sec" style="margin-top:24px">🤝 Współpraca z rodzicami</div>
+      <div class="fg"><textarea id="i_wspolpraca" class="tall"></textarea></div>
+      <div class="sec">📅 Ewaluacja</div>
+      <table class="ftable"><thead><tr><th style="width:22%">OBSZAR</th><th>DATA</th><th>WNIOSKI</th><th>MODYFIKACJE</th><th>UWAGI</th></tr></thead>
+      <tbody id="ewaluacjaBody"></tbody></table>
+      <div class="sec">✍️ Podpisy</div>
+      <div class="form-grid">
+        <div class="fg"><label>Opracował(a)</label><input type="text" id="i_opracowal"></div>
+        <div class="fg"><label>Zatwierdza Dyrektor</label><input type="text" id="i_dyrektor"></div>
+        <div class="fg span2"><label>Zapoznał się — rodzic/opiekun</label><input type="text" id="i_rodzic"></div>
+      </div>
+    </div>
+    <div class="nav-btns">
+      <button class="btn btn-outline" onclick="goStep(3)">← Wróć</button>
+      <button class="btn btn-danger" onclick="newStudent()">🗑 Wyczyść</button>
+      <button class="btn btn-teal" onclick="saveCurrentStudent()">💾 Zapisz ucznia</button>
+      <button class="btn btn-primary" onclick="goStep(5)">Dalej: Dostosowania →</button>
+    </div>
+  </div>
+
+  <!-- KROK 5 -->
+  <div id="step5" class="hidden">
+    <div class="card">
+      <div class="card-title">📋 Karta Dostosowań</div>
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+        <button class="tab active" id="tab-wych" onclick="setDostMode('wych')">👩‍🏫 Tryb wychowawcy</button>
+        <button class="tab" id="tab-nau" onclick="setDostMode('nau')">📚 Tryb nauczyciela</button>
+      </div>
+      <div class="sec">🧠 Diagnoza</div>
+      <div id="dostDiagChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
+      <div id="nauSection" style="display:none;margin-bottom:16px">
+        <div class="sec">📚 Przedmiot</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px" id="przedmiotChips"></div>
+        <div class="form-grid" style="margin-top:12px">
+          <div class="fg"><label>Nauczyciel</label><input type="text" id="d_nauczyciel"></div>
+          <div class="fg"><label>Przedmiot</label><input type="text" id="d_przedmiot"></div>
+        </div>
+      </div>
+      <div class="sec">✅ Dostosowania</div>
+      <div id="dostChecks"></div>
+      <div style="margin-top:20px;border-top:2px solid rgba(13,148,136,.15);padding-top:16px">
+        <div style="font-size:.78rem;font-weight:700;color:var(--navy);margin-bottom:6px">✏️ Własne dostosowania</div>
+        <div style="font-size:.72rem;color:var(--gray);margin-bottom:10px">Wpisz i kliknij 💾 — zostanie zapisane i pojawi się przy następnych uczniach.</div>
+        <div style="font-size:.72rem;font-weight:700;color:var(--teal);text-transform:uppercase;margin-bottom:6px">📚 Zapisane własne</div>
+        <div id="customDostSaved" class="dost-items" style="margin-bottom:10px"></div>
+        <div id="customDostItems" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+        <button onclick="addCustomDost()" style="padding:6px 14px;border-radius:8px;border:2px dashed var(--border);background:white;color:var(--gray);font-size:.75rem;font-family:Sora,sans-serif;cursor:pointer;width:100%">+ Dodaj własne dostosowanie</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+        <button class="btn btn-teal" onclick="selectAllDost()">☑️ Zaznacz wszystkie</button>
+        <button class="btn btn-outline" onclick="clearAllDost()">☐ Odznacz wszystkie</button>
+        <button class="btn btn-primary" style="margin-left:auto" onclick="buildDostOutput()">✅ Generuj kartę →</button>
+      </div>
+    </div>
+    <div class="card" id="dostOutputCard" style="display:none;margin-top:0">
+      <div class="card-title">👁️ Podgląd karty dostosowań</div>
+      <div id="dostOutput"></div>
+      <div style="margin-top:14px"><button class="btn btn-teal" onclick="printDocDost()">🖨️ Drukuj / Zapisz PDF</button></div>
+    </div>
+    <div class="nav-btns">
+      <button class="btn btn-outline" onclick="goStep(4)">← Wróć</button>
+      <button class="btn btn-danger" onclick="newStudent()">🗑 Wyczyść</button>
+      <button class="btn btn-primary" onclick="goStep(6)">Dalej: Drukuj →</button>
+    </div>
+  </div>
+
+  <!-- KROK 6 -->
+  <div id="step6" class="hidden">
+    <div class="card" id="planEditCard" style="display:none">
+      <div class="card-title">✏️ Formy pomocy — Plan PPP</div>
+      <table class="ftable"><thead><tr style="background:var(--navy);color:white"><th>Forma pomocy</th><th>Sposób</th><th>Okres</th><th>Wymiar</th><th style="width:30px"></th></tr></thead><tbody id="planEditBody"></tbody></table>
+      <button class="add-row-btn" onclick="openFormyModal('plan')">+ Dodaj formę pomocy</button>
+    </div>
+    <div class="card">
+      <div class="card-title">🖨️ Podgląd i drukowanie</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;align-items:center">
+        <div style="display:flex;gap:6px" id="printTabs">
+          <div class="out-tab active" id="pt-wopfu" onclick="showPrint('wopfu')">📊 WOPFU</div>
+          <div class="out-tab" id="pt-ipet" onclick="showPrint('ipet')">📝 IPET</div>
+          <div class="out-tab" id="pt-plan" onclick="showPrint('plan')" style="display:none">📋 Plan pomocy</div>
+        </div>
+        <button class="btn btn-teal" onclick="printDoc()">🖨️ Drukuj / Zapisz PDF</button>
+        <div style="font-size:.75rem;color:var(--gray);flex:1">Otworzy się nowe okno z dokumentem gotowym do druku.</div>
+      </div>
+      <div id="print-wopfu"><div id="wopfu-output"></div></div>
+      <div id="print-ipet" style="display:none"><div id="ipet-output"></div></div>
+      <div id="print-plan" style="display:none"><div id="plan-output"></div></div>
+    </div>
+    <div class="nav-btns">
+      <button class="btn btn-outline" onclick="goStep(5)">← Wróć</button>
+      <button class="btn btn-danger" onclick="newStudent()">🗑 Wyczyść</button>
+      <button class="btn btn-amber" onclick="regenerateAI()">🤖 Przerób z AI ponownie</button>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div style="font-size:1.5rem;margin-bottom:4px">📋</div>
+  <div><strong>Generator IPET & WOPFU</strong></div>
+  <div style="margin-top:4px"><a href="https://www.2piny.pl" target="_blank">Stowarzyszenie 2piny</a> &nbsp;·&nbsp; Jacek Suliga &nbsp;·&nbsp; Łódź</div>
+  <div style="margin-top:6px;display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap">
+    <a href="https://www.facebook.com/profile.php?id=61583779079223" target="_blank" class="footer-badge">🎯 Focusense®</a>
+    <a href="https://www.2piny.pl" target="_blank" class="footer-badge">🧩 LEGO® Serious Play®</a>
+  </div>
+  <div style="margin-top:5px;opacity:.4;font-size:.68rem">kontakt@2piny.pl · tel. 663 882 124</div>
+  <div><a href="https://suppi.pl/jaceksuliga" target="_blank" class="suppi-btn">☕ Wesprzyj moje projekty</a></div>
+</footer>
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// ZMIENNE GLOBALNE
+// ═══════════════════════════════════════════════════════════
+var IMAGES = [];
+var OCR_TEXT = '';
+var CURRENT_STEP = 1;
+var DOC_TYPE = 'orzeczenie';
+var ETAP = 'sp';
+var LAST_PARSED_DATA = {};
+var CURRENT_STUDENT_ID = null;
+var selectedDiagnozy = [];
+var selectedPrzedmiot = null;
+var dostMode = 'wych';
+var customDostCounter = 0;
+var formyModalTarget = 'ipet';
+
+// ═══════════════════════════════════════════════════════════
+// SŁOWNIK FORM POMOCY
+// ═══════════════════════════════════════════════════════════
+var FORMY_DICT_DATA = [
+  {
+    cat: 'Pomoc psychologiczno-pedagogiczna',
+    items: [
+      'Zajęcia korekcyjno-kompensacyjne','Zajęcia logopedyczne','Zajęcia dydaktyczno-wyrównawcze',
+      'Zajęcia rozwijające kompetencje emocjonalno-społeczne','Zajęcia rozwijające uzdolnienia',
+      'Inne zajęcia o charakterze terapeutycznym','Porady i konsultacje dla ucznia',
+      'Porady i konsultacje dla rodziców i nauczycieli'
+    ]
+  },
+  {
+    cat: 'Zajęcia rewalidacyjne',
+    items: [
+      'Zajęcia rewalidacyjne – terapia pedagogiczna','Zajęcia rewalidacyjne – terapia logopedyczna',
+      'Zajęcia rewalidacyjne – terapia psychologiczna','Zajęcia rewalidacyjne – trening umiejętności społecznych (TUS)',
+      'Zajęcia rewalidacyjne – integracja sensoryczna (SI)','Zajęcia rewalidacyjne – korekcja wad postawy',
+      'Zajęcia rewalidacyjne – nauka orientacji przestrzennej','Zajęcia rewalidacyjne – AAC / język migowy',
+      'Zajęcia rewalidacyjne – biofeedback / EEG neurofeedback','Zajęcia rewalidacyjne – arteterapia / muzykoterapia'
+    ]
+  },
+  {
+    cat: 'Dostosowania organizacyjne',
+    items: [
+      'Wydłużony czas na sprawdzianie / egzaminie','Dostosowanie wymagań edukacyjnych',
+      'Preferowane miejsce w klasie (blisko nauczyciela / tablicy)','Przerwy w trakcie pracy – techniki samoregulacji',
+      'Karta z instrukcją / plan dnia w formie wizualnej','Alternatywne formy sprawdzania wiedzy',
+      'Możliwość korzystania z komputera / tabletu','Pomoc asystenta nauczyciela / nauczyciela wspomagającego'
+    ]
+  },
+  {
+    cat: 'Wsparcie psychologiczno-pedagogiczne',
+    items: [
+      'Konsultacje psychologa szkolnego','Spotkania z pedagogiem szkolnym',
+      'Trening zastępowania agresji (ART)','Trening umiejętności społecznych (TUS)',
+      'Program wychowawczo-profilaktyczny'
+    ]
+  }
+];
+
+var HOURS_HINTS = [
+  ['korekcyjno','45 min / tydzień'],['logopedyczne','45 min / tydzień'],
+  ['dydaktyczno','45 min / tydzień'],['emocjonalno','45 min / tydzień'],
+  ['rewalidacyjne','60 min / tydzień'],['integracja','60 min / tydzień'],
+  ['umiejętności społecznych','60 min / tydzień'],['arteterapia','60 min / tydzień'],
+  ['biofeedback','60 min / tydzień']
+];
+
+// ═══════════════════════════════════════════════════════════
+// MODAL FORMY POMOCY
+// ═══════════════════════════════════════════════════════════
+function renderFormyList(q) {
+  var c = document.getElementById('formyListContainer'); if (!c) return;
+  var html = '', q_low = q ? q.toLowerCase() : '';
+  for (var gi = 0; gi < FORMY_DICT_DATA.length; gi++) {
+    var group = FORMY_DICT_DATA[gi], matching = [];
+    for (var ii = 0; ii < group.items.length; ii++) {
+      if (!q_low || group.items[ii].toLowerCase().indexOf(q_low) >= 0) matching.push(group.items[ii]);
+    }
+    if (!matching.length) continue;
+    html += '<div class="formy-cat">' + group.cat + '</div>';
+    for (var mi = 0; mi < matching.length; mi++) {
+      var it = matching[mi], display = it;
+      if (q_low) {
+        var idx = it.toLowerCase().indexOf(q_low);
+        if (idx >= 0) display = it.slice(0,idx)+'<strong style="color:var(--teal)">'+it.slice(idx,idx+q.length)+'</strong>'+it.slice(idx+q.length);
+      }
+      html += '<div class="formy-item" data-val="'+it.replace(/"/g,'&quot;')+'">'+display+'</div>';
+    }
+  }
+  if (!html) html = '<div style="padding:12px 16px;font-size:.8rem;color:var(--gray);font-style:italic">Brak wyników — wpisz własną nazwę powyżej</div>';
+  c.innerHTML = html;
+  var rows = c.querySelectorAll('.formy-item');
+  for (var ri = 0; ri < rows.length; ri++) {
+    rows[ri].addEventListener('click', (function(val) { return function() { selectForma(val); }; })(rows[ri].getAttribute('data-val')));
+  }
+}
+
+function filterFormyList(val) { renderFormyList(val); }
+
+function selectForma(val) {
+  var inp = document.getElementById('modal_forma'); if (inp) inp.value = val;
+  var rows = document.querySelectorAll('#formyListContainer .formy-item');
+  for (var i = 0; i < rows.length; i++) rows[i].classList.toggle('selected', rows[i].getAttribute('data-val') === val);
+  var goEl = document.getElementById('modal_godziny');
+  if (goEl && !goEl.value) {
+    var vl = val.toLowerCase();
+    for (var hi = 0; hi < HOURS_HINTS.length; hi++) {
+      if (vl.indexOf(HOURS_HINTS[hi][0]) >= 0) { goEl.value = HOURS_HINTS[hi][1]; break; }
+    }
+  }
+}
+
+function openFormyModal(target) {
+  formyModalTarget = target || 'ipet';
+  var m = document.getElementById('formyModal'); if (!m) return;
+  m.classList.add('open');
+  document.getElementById('modal_forma').value = '';
+  document.getElementById('modal_godziny').value = '';
+  document.getElementById('modal_osoby').value = '';
+  document.getElementById('modal_sposob').value = 'indywidualnie / grupowo';
+  document.getElementById('modal_okres').value = 'rok szkolny';
+  renderFormyList('');
+  setTimeout(function() { document.getElementById('modal_forma').focus(); }, 100);
+}
+
+function closeFormyModal() { var m = document.getElementById('formyModal'); if (m) m.classList.remove('open'); }
+
+function confirmFormyModal() {
+  var forma = document.getElementById('modal_forma').value.trim();
+  if (!forma) { document.getElementById('modal_forma').focus(); return; }
+  var sposob = document.getElementById('modal_sposob').value;
+  var okres = document.getElementById('modal_okres').value;
+  var godziny = document.getElementById('modal_godziny').value;
+  var osoby = document.getElementById('modal_osoby').value;
+  if (formyModalTarget === 'plan') addPlanRow(forma, sposob, okres, godziny);
+  else addPomocRow(forma, sposob, okres, godziny, osoby);
+  closeFormyModal();
+  showToast('Dodano: ' + forma.slice(0,40));
+}
+
+document.getElementById('formyModal').addEventListener('click', function(e) { if (e.target === this) closeFormyModal(); });
+
+// ═══════════════════════════════════════════════════════════
+// API KEY
+// ═══════════════════════════════════════════════════════════
+var API_KEY_STORE = 'ipet_api_key';
+
+function saveApiKey() {
+  var val = document.getElementById('apiKeyInput').value.trim();
+  var status = document.getElementById('apiKeyStatus');
+  if (!val.startsWith('sk-ant-')) { status.style.color='#f87171'; status.textContent='❌ Nieprawidłowy format — klucz powinien zaczynać się od sk-ant-'; return; }
+  try { localStorage.setItem(API_KEY_STORE, val); } catch(e) {}
+  status.style.color='#4ade80'; status.textContent='✅ Klucz zapisany w przeglądarce';
+  document.getElementById('apiBanner').style.borderColor='rgba(74,222,128,.3)';
+  showToast('🔑 Klucz API zapisany');
+}
+
+function getApiKey() { try { return localStorage.getItem(API_KEY_STORE)||''; } catch(e) { return ''; } }
+
+function initApiKey() {
+  var key = getApiKey();
+  if (key) {
+    document.getElementById('apiKeyInput').value = '••••••••••••••••••••'+key.slice(-6);
+    document.getElementById('apiKeyStatus').style.color='#4ade80';
+    document.getElementById('apiKeyStatus').textContent='✅ Klucz załadowany z pamięci przeglądarki';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CLAUDE API
+// ═══════════════════════════════════════════════════════════
+function callClaude(messages, maxTokens) {
+  maxTokens = maxTokens || 8000;
+  var key = getApiKey();
+  var headers = { 'Content-Type':'application/json', 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' };
+  if (key) headers['x-api-key'] = key;
+  return fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST', headers:headers,
+    body:JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:maxTokens, messages:messages })
+  }).then(function(resp) {
+    return resp.json().then(function(data) {
+      if (!resp.ok) { var msg = data.error ? data.error.message : JSON.stringify(data).slice(0,200); throw new Error(msg); }
+      return data;
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// PARSE JSON
+// ═══════════════════════════════════════════════════════════
+function parseJSON(str) {
+  var start = str.indexOf('{'), end = str.lastIndexOf('}');
+  if (start === -1) return {};
+  if (end > start) { try { return JSON.parse(str.slice(start,end+1)); } catch(e) {} }
+  var partial = str.slice(start), inStr = false, depth = 0;
+  for (var i = 0; i < partial.length; i++) {
+    var c = partial[i];
+    if (c==='"' && (i===0||partial[i-1]!=='\\')) inStr=!inStr;
+    if (!inStr) { if(c==='{'||c==='[') depth++; else if(c==='}'||c===']') depth--; }
+  }
+  if (inStr) partial+='"';
+  while (depth>0) { partial+='}'; depth--; }
+  try { return JSON.parse(partial); } catch(e) {
+    var lc=partial.lastIndexOf(',');
+    if (lc>0) {
+      var fixed=partial.slice(0,lc), d2=0, inS=false;
+      for (var j=0;j<fixed.length;j++) {
+        var ch=fixed[j];
+        if(ch==='"'&&(j===0||fixed[j-1]!=='\\')) inS=!inS;
+        if(!inS){if(ch==='{'||ch==='[') d2++; else if(ch==='}'||ch===']') d2--;}
+      }
+      while(d2>0){fixed+='}';d2--;}
+      try { return JSON.parse(fixed); } catch(e2) {}
+    }
+  }
+  return {};
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROMPT
+// ═══════════════════════════════════════════════════════════
+function buildPrompt(txt) {
+  var base = 'Jesteś ekspertem od polskich dokumentów oświatowych.\n';
+  base += txt ? 'Przeanalizuj poniższy tekst dokumentu.\n' : 'Przeanalizuj przesłany dokument.\n';
+  base += 'Zwróć WYŁĄCZNIE obiekt JSON — zacznij od { i skończ na }. Zero tekstu przed ani po. Zero markdown.\n\n';
+  base += '{"typ_dokumentu":"orzeczenie","imie_nazwisko":"","data_urodzenia":"","pesel":"","szkola":"","klasa":"","wychowawca":"","nr_orzeczenia":"","data_orzeczenia":"","poradnia":"","rodzice":"","diagnoza_krotka":"","diagnoza":"","zalecenia":"","mocne_strony":"","trudnosci":"","cele_terapeutyczne":"","cele_edukacyjne":"","wspolpraca_rodzice":"","formy_pomocy":[{"forma":"","sposob":"","okres":"","wymiar":"","osoby":""}],"wopfu_obszary":[{"nazwa":"","zasoby":"","trudnosci":"","dzialania":""}],"tresci_programowe":"","pomoc_wsparcie":""}\n\n';
+  base += 'ZASADY:\n1. typ_dokumentu: TYLKO z nagłówka\n2. diagnoza_krotka: max 5 słów\n3. zalecenia: warunki realizacji lub wskazówki\n4. wopfu_obszary: 8 obszarów\n5. Puste pole = ""\n';
+  if (txt) base += '\nTEKST DOKUMENTU:\n' + txt;
+  return base;
+}
+
+// ═══════════════════════════════════════════════════════════
+// PLIKI
+// ═══════════════════════════════════════════════════════════
+function handleFiles(files) {
+  for (var i = 0; i < files.length; i++) {
+    var f = files[i];
+    var isPdf = f.type==='application/pdf' || f.name.toLowerCase().indexOf('.pdf')>=0;
+    var isImg = f.type.indexOf('image/')===0;
+    if (!isPdf && !isImg) continue;
+    (function(file, pdf) {
+      var reader = new FileReader();
+      reader.onload = function(e) { IMAGES.push({file:file,dataUrl:e.target.result,isPdf:pdf}); renderPreviews(); };
+      reader.readAsDataURL(file);
+    })(f, isPdf);
+  }
+}
+
+function handleDrop(ev) { ev.preventDefault(); document.getElementById('dropZone').classList.remove('drag'); handleFiles(ev.dataTransfer.files); }
+
+function renderPreviews() {
+  var grid = document.getElementById('previewGrid'), html = '';
+  for (var i = 0; i < IMAGES.length; i++) {
+    var img = IMAGES[i];
+    html += '<div class="preview-img">';
+    if (img.isPdf) html += '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f0f4f8;gap:4px"><span style="font-size:2rem">📄</span><span style="font-size:.65rem;font-weight:700">'+img.file.name.slice(0,16)+'</span></div>';
+    else html += '<img src="'+img.dataUrl+'" alt="str.'+(i+1)+'">';
+    html += '<div class="preview-order">str. '+(i+1)+'</div><button class="del" onclick="removeImg('+i+')">✕</button></div>';
+  }
+  grid.innerHTML = html;
+  document.getElementById('btnAnalyze').disabled = IMAGES.length === 0;
+  document.getElementById('ocrCard').style.display = IMAGES.length > 0 ? 'block' : 'none';
+}
+
+function removeImg(i) { IMAGES.splice(i,1); renderPreviews(); }
+
+// ═══════════════════════════════════════════════════════════
+// ANALYZE
+// ═══════════════════════════════════════════════════════════
+function analyzeImages() {
+  if (!IMAGES.length) return;
+  var btn = document.getElementById('btnAnalyze');
+  btn.disabled = true; btn.innerHTML = '<span class="spin">⟳</span> Analizuję...';
+  document.getElementById('ocrProg').style.display='block';
+  document.getElementById('ocrFill').style.width='10%';
+  document.getElementById('ocrMsg').textContent='Wysyłam do AI...';
+  var content = [];
+  for (var i=0;i<IMAGES.length;i++) {
+    var img=IMAGES[i], b64=img.dataUrl.split(',')[1];
+    if (img.isPdf) content.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}});
+    else { var mt=img.file.type&&img.file.type.indexOf('image/')===0?img.file.type:'image/jpeg'; content.push({type:'image',source:{type:'base64',media_type:mt,data:b64}}); }
+  }
+  content.push({type:'text',text:buildPrompt('')});
+  document.getElementById('ocrFill').style.width='30%';
+  document.getElementById('ocrMsg').textContent='AI czyta dokument...';
+  callClaude([{role:'user',content:content}]).then(function(data) {
+    document.getElementById('ocrFill').style.width='85%';
+    var raw='';
+    for (var i=0;i<data.content.length;i++) { if(data.content[i].type==='text'){raw=data.content[i].text;break;} }
+    OCR_TEXT=raw;
+    document.getElementById('ocrText').textContent=raw.length>600?raw.slice(0,600)+'...':raw;
+    document.getElementById('ocrPreview').style.display='block';
+    var parsed=parseJSON(raw);
+    document.getElementById('ocrFill').style.width='100%';
+    if (!parsed||!Object.keys(parsed).length) { document.getElementById('ocrMsg').innerHTML='❌ Nie udało się odczytać danych.'; btn.disabled=false; btn.innerHTML='🤖 Analizuj dokument'; return; }
+    document.getElementById('ocrMsg').innerHTML='✅ Gotowe! <button onclick="goStep(2)" style="background:var(--teal);color:white;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:Sora,sans-serif;font-size:.75rem;margin-left:8px">Przejdź dalej →</button>';
+    applyParsed(parsed);
+  }).catch(function(err) {
+    document.getElementById('ocrMsg').textContent='❌ Błąd: '+err.message;
+    document.getElementById('ocrFill').style.width='0%';
+    btn.disabled=false; btn.innerHTML='🤖 Analizuj dokument';
+  });
+}
+
+function analyzeText() {
+  var txt=document.getElementById('manualText').value.trim();
+  if (!txt) { alert('Wklej najpierw tekst dokumentu.'); return; }
+  var btn=event.target;
+  btn.disabled=true; btn.innerHTML='<span class="spin">⟳</span> Analizuję...';
+  document.getElementById('ocrCard').style.display='block';
+  document.getElementById('ocrProg').style.display='block';
+  document.getElementById('ocrFill').style.width='20%';
+  document.getElementById('ocrMsg').textContent='Wysyłam do AI...';
+  callClaude([{role:'user',content:buildPrompt(txt)}]).then(function(data) {
+    document.getElementById('ocrFill').style.width='85%';
+    var raw='';
+    for (var i=0;i<data.content.length;i++){if(data.content[i].type==='text'){raw=data.content[i].text;break;}}
+    OCR_TEXT=raw;
+    document.getElementById('ocrText').textContent=raw.length>600?raw.slice(0,600)+'...':raw;
+    document.getElementById('ocrPreview').style.display='block';
+    var parsed=parseJSON(raw);
+    document.getElementById('ocrFill').style.width='100%';
+    if (!parsed||!Object.keys(parsed).length) { document.getElementById('ocrMsg').innerHTML='❌ Nie udało się odczytać danych.'; btn.disabled=false; btn.innerHTML='🤖 Analizuj tekst'; return; }
+    document.getElementById('ocrMsg').innerHTML='✅ Dane odczytane. <button onclick="goStep(2)" style="background:var(--teal);color:white;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:Sora,sans-serif;font-size:.75rem;margin-left:8px">Przejdź dalej →</button>';
+    applyParsed(parsed);
+  }).catch(function(err) {
+    document.getElementById('ocrMsg').textContent='❌ Błąd: '+err.message;
+    document.getElementById('ocrFill').style.width='0%';
+  }).finally(function() { btn.disabled=false; btn.innerHTML='🤖 Analizuj tekst'; });
+}
+
+// ═══════════════════════════════════════════════════════════
+// APPLY PARSED
+// ═══════════════════════════════════════════════════════════
+function applyParsed(parsed) {
+  fillFields(parsed);
+  if (parsed.typ_dokumentu==='opinia') setDocType('opinia'); else setDocType('orzeczenie');
+  initWopfu(parsed);
+  initIpet(parsed);
+  if (parsed.diagnoza) showDostosowaniaPanel(parsed.diagnoza);
+  document.getElementById('aiFilledAlert').style.display='flex';
+  LAST_PARSED_DATA=parsed;
+}
+
+// ═══════════════════════════════════════════════════════════
+// FILL FIELDS
+// ═══════════════════════════════════════════════════════════
+function fillFields(p) {
+  if (!p||typeof p!=='object') return;
+  function set(id,val){var el=document.getElementById(id);if(el&&val!=null&&val!=='')el.value=val;}
+  set('f_imie',p.imie_nazwisko||p.f_imie); set('f_dob',p.data_urodzenia||p.f_dob);
+  set('f_pesel',p.pesel||p.f_pesel); set('f_szkola',p.szkola||p.f_szkola);
+  set('f_klasa',p.klasa||p.f_klasa); set('f_wiek',p.f_wiek);
+  set('f_wychowawca',p.wychowawca||p.f_wychowawca); set('f_rok',p.f_rok); set('f_okres',p.f_okres);
+  set('f_nr_orzeczenia',p.nr_orzeczenia||p.f_nr_orzeczenia); set('f_data_orzeczenia',p.data_orzeczenia||p.f_data_orzeczenia);
+  set('f_poradnia',p.poradnia||p.f_poradnia); set('f_rodzice',p.rodzice||p.f_rodzice);
+  set('f_diagnoza_krotka',p.diagnoza_krotka||p.f_diagnoza_krotka); set('f_diagnoza',p.diagnoza||p.f_diagnoza);
+  set('f_zalecenia',p.zalecenia||p.f_zalecenia); set('f_mocne',p.mocne_strony||p.f_mocne);
+  set('f_trudnosci',p.trudnosci||p.f_trudnosci);
+  if (!p.f_wiek&&p.data_urodzenia) {
+    var m=p.data_urodzenia.match(/(\d{1,2})[.\-](\d{1,2})[.\-](\d{4})/);
+    if (m) document.getElementById('f_wiek').value=(new Date().getFullYear()-parseInt(m[3]))+' lat';
+  }
+  var now=new Date(), yr=now.getMonth()>=8?now.getFullYear():now.getFullYear()-1;
+  if (!document.getElementById('f_rok').value) document.getElementById('f_rok').value=yr+'/'+(yr+1);
+  if (!document.getElementById('f_okres').value) document.getElementById('f_okres').value='I okres edukacyjny';
+  var klasa=document.getElementById('f_klasa').value; if (klasa) detectEtapFromKlasa(klasa);
+}
+
+// ═══════════════════════════════════════════════════════════
+// WOPFU
+// ═══════════════════════════════════════════════════════════
+var WOPFU_OBSZARY = [
+  'Ogólna sprawność fizyczna (motoryka duża)','Sprawność rąk (motoryka mała / grafomotoryka)',
+  'Zmysły i integracja sensoryczna','Komunikowanie się i artykulacja',
+  'Sfera poznawcza (uwaga, pamięć, myślenie, techniki szkolne)','Sfera emocjonalno-motywacyjna',
+  'Sfera społeczna (relacje z rówieśnikami i dorosłymi)','Samodzielność i samoobsługa'
+];
+
+function initWopfu(p) {
+  if (!p||typeof p!=='object') p={};
+  initWopfuAreas(p);
+  var zrodlo=DOC_TYPE==='opinia'?'OPINIA PORADNI PSYCHOLOGICZNO-PEDAGOGICZNEJ':'ORZECZENIE O POTRZEBIE KSZTAŁCENIA SPECJALNEGO';
+  var rozp=p.diagnoza_krotka?(p.diagnoza_krotka+(p.diagnoza?'\n\n'+p.diagnoza:'')):(p.diagnoza||'');
+  document.getElementById('wopfuBody').innerHTML='';
+  addWopfuRow(zrodlo,rozp,p.zalecenia||'');
+  addWopfuRow('OPINIA LEKARSKA / SPECJALISTYCZNA','','');
+  addWopfuRow('OBSERWACJA W SZKOLE','','');
+  addWopfuRow('WYWIAD Z RODZICAMI','','');
+}
+
+function addWopfuRow(z,r,zal) {
+  z=z||'';r=r||'';zal=zal||'';
+  var tr=document.createElement('tr');
+  tr.innerHTML='<td><textarea style="min-height:80px;width:100%;border:none;font-size:.78rem;font-family:Sora,sans-serif;resize:vertical">'+z+'</textarea></td>'+
+    '<td><textarea style="min-height:80px;width:100%;border:none;font-size:.78rem;font-family:Sora,sans-serif;resize:vertical">'+r+'</textarea></td>'+
+    '<td><textarea style="min-height:80px;width:100%;border:none;font-size:.78rem;font-family:Sora,sans-serif;resize:vertical">'+zal+'</textarea></td>'+
+    '<td><button class="del-row" onclick="this.closest(\'tr\').remove()">🗑</button></td>';
+  document.getElementById('wopfuBody').appendChild(tr);
+}
+
+function initWopfuAreas(p) {
+  var c=document.getElementById('wopfuAreas'); if(!c) return; c.innerHTML='';
+  for (var i=0;i<WOPFU_OBSZARY.length;i++) {
+    var o=p.wopfu_obszary&&p.wopfu_obszary[i]?p.wopfu_obszary[i]:{};
+    addWopfuArea(WOPFU_OBSZARY[i],o.zasoby||'',o.trudnosci||'',o.dzialania||'');
+  }
+}
+
+function addWopfuArea(nazwa,zasoby,trudnosci,dzialania) {
+  nazwa=nazwa||'';zasoby=zasoby||'';trudnosci=trudnosci||'';dzialania=dzialania||'';
+  var c=document.getElementById('wopfuAreas'); if(!c) return;
+  var div=document.createElement('div'); div.className='wopfu-area';
+  div.innerHTML='<div class="wopfu-area-header"><input type="text" value="'+nazwa+'" placeholder="Obszar" style="background:none;border:none;color:white;font-family:Sora,sans-serif;font-weight:700;font-size:.78rem;flex:1;outline:none"><button onclick="this.closest(\'.wopfu-area\').remove()" style="background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer">✕</button></div>'+
+    '<div class="wopfu-area-grid">'+
+    '<div class="wopfu-area-col"><label class="ok">✅ Zasoby</label><textarea placeholder="Co uczeń potrafi...">'+zasoby+'</textarea></div>'+
+    '<div class="wopfu-area-col"><label class="nok">❌ Trudności</label><textarea placeholder="Gdzie są trudności...">'+trudnosci+'</textarea></div>'+
+    '<div class="wopfu-area-col"><label class="next">➡️ Działania</label><textarea placeholder="Co robić...">'+dzialania+'</textarea></div>'+
+    '</div>';
+  c.appendChild(div);
+}
+
+function collectWopfuAreas() {
+  var result=[], areas=document.querySelectorAll('.wopfu-area');
+  for (var i=0;i<areas.length;i++) {
+    var a=areas[i];
+    result.push({
+      nazwa:a.querySelector('input')?a.querySelector('input').value:'',
+      zasoby:a.querySelectorAll('textarea')[0]?a.querySelectorAll('textarea')[0].value:'',
+      trudnosci:a.querySelectorAll('textarea')[1]?a.querySelectorAll('textarea')[1].value:'',
+      dzialania:a.querySelectorAll('textarea')[2]?a.querySelectorAll('textarea')[2].value:''
+    });
+  }
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════
+// IPET / PPP
+// ═══════════════════════════════════════════════════════════
+function initIpet(p) {
+  if (!p||typeof p!=='object') p={};
+  function set(id,v){var el=document.getElementById(id);if(el&&v)el.value=v;}
+  set('i_cele_ter',p.cele_terapeutyczne); set('i_cele_edu',p.cele_edukacyjne);
+  set('i_tresci',p.tresci_programowe); set('i_pomoc_wsparcie',p.pomoc_wsparcie);
+  set('i_wspolpraca',p.wspolpraca_rodzice);
+  document.getElementById('pomocBody').innerHTML='';
+  if (p.formy_pomocy&&p.formy_pomocy.length) {
+    setTimeout(function(){preselectPppFromAI(p.formy_pomocy);syncPppToTable();},200);
+  } else {
+    addPomocRow('','','','','');
+  }
+}
+
+function initStep4() {
+  var pppCont=document.getElementById('ppp-container');
+  if (pppCont&&!pppCont.dataset.rendered) {
+    renderPppCheckboxes(PPP_FORMY,'ppp-container');
+    renderPppCheckboxes(REWALIDACJA_FORMY,'rewalidacja-container');
+    pppCont.dataset.rendered='1';
+    var allFormy=PPP_FORMY.concat(REWALIDACJA_FORMY);
+    for (var i=0;i<allFormy.length;i++) {
+      (function(item){var el=document.getElementById(item.id);if(el) el.addEventListener('change',function(){setTimeout(syncPppToTable,50);});})(allFormy[i]);
+    }
+    if (LAST_PARSED_DATA&&LAST_PARSED_DATA.formy_pomocy) setTimeout(function(){preselectPppFromAI(LAST_PARSED_DATA.formy_pomocy);},100);
+  }
+}
+
+var PPP_FORMY = [
+  {id:'ppp_1',label:'Zajęcia dydaktyczno-wyrównawcze',defaultHours:'45 min / tydzień'},
+  {id:'ppp_2',label:'Zajęcia korekcyjno-kompensacyjne',defaultHours:'45 min / tydzień'},
+  {id:'ppp_3',label:'Zajęcia logopedyczne',defaultHours:'45 min / tydzień'},
+  {id:'ppp_4',label:'Zajęcia rozwijające kompetencje emocjonalno-społeczne',defaultHours:'45 min / tydzień'},
+  {id:'ppp_5',label:'Zajęcia rozwijające uzdolnienia',defaultHours:'45 min / tydzień'},
+  {id:'ppp_6',label:'Inne zajęcia o charakterze terapeutycznym',defaultHours:'45 min / tydzień'},
+  {id:'ppp_7',label:'Porady i konsultacje',defaultHours:'wg potrzeb'},
+  {id:'ppp_8',label:'Warsztaty i szkolenia',defaultHours:'wg potrzeb'}
+];
+var REWALIDACJA_FORMY = [
+  {id:'rew_1',label:'Korekcja wad postawy',defaultHours:'60 min / tydzień'},
+  {id:'rew_2',label:'Korygowanie wad wymowy (logopedia rewalidacyjna)',defaultHours:'60 min / tydzień'},
+  {id:'rew_3',label:'Orientacja przestrzenna i poruszanie się',defaultHours:'60 min / tydzień'},
+  {id:'rew_4',label:'Nauka języka migowego / AAC',defaultHours:'60 min / tydzień'},
+  {id:'rew_5',label:'Zajęcia rewalidacyjne wspomagające naukę',defaultHours:'60 min / tydzień'},
+  {id:'rew_6',label:'Trening Umiejętności Społecznych (TUS)',defaultHours:'60 min / tydzień'},
+  {id:'rew_7',label:'Terapia Integracji Sensorycznej (SI)',defaultHours:'60 min / tydzień'},
+  {id:'rew_8',label:'Arteterapia / Muzykoterapia',defaultHours:'60 min / tydzień'}
+];
+
+function renderPppCheckboxes(data, containerId) {
+  var c=document.getElementById(containerId); if(!c) return; c.innerHTML='';
+  for (var i=0;i<data.length;i++) {
+    var item=data[i], div=document.createElement('div'); div.className='ppp-item'; div.id='wrap_'+item.id;
+    div.innerHTML='<input type="checkbox" id="'+item.id+'" onchange="pppToggle(this,\''+item.id+'_hours\',\''+item.defaultHours+'\')"><div style="flex:1"><label for="'+item.id+'" class="ppp-label">'+item.label+'</label><div class="ppp-hours-default">Domyślnie: '+item.defaultHours+'</div><input type="text" id="'+item.id+'_hours" class="ppp-hours-input" placeholder="'+item.defaultHours+'"></div>';
+    c.appendChild(div);
+  }
+}
+
+function pppToggle(cb,hoursId,def) {
+  var h=document.getElementById(hoursId),w=cb.closest('.ppp-item');
+  if (cb.checked) { h.style.display='block'; if(!h.value) h.value=def; w.classList.add('checked'); }
+  else { h.style.display='none'; w.classList.remove('checked'); }
+  setTimeout(syncPppToTable,50);
+}
+
+function syncPppToTable() {
+  var tbody=document.getElementById('pomocBody'); if(!tbody) return;
+  var manual=[];
+  var rows=tbody.querySelectorAll('tr:not([data-ppp])');
+  for (var i=0;i<rows.length;i++) manual.push(rows[i].cloneNode(true));
+  tbody.innerHTML='';
+  var allFormy=PPP_FORMY.concat(REWALIDACJA_FORMY);
+  for (var j=0;j<allFormy.length;j++) {
+    var item=allFormy[j], cb=document.getElementById(item.id); if(!cb||!cb.checked) continue;
+    var w=document.getElementById(item.id+'_hours');
+    addPomocRow(item.label,'indywidualnie / grupowo','rok szkolny',w?(w.value||item.defaultHours):item.defaultHours,'');
+    var last=tbody.lastElementChild; if(last) last.setAttribute('data-ppp',item.id);
+  }
+  for (var k=0;k<manual.length;k++) tbody.appendChild(manual[k]);
+  if (!tbody.querySelector('tr')) addPomocRow('','','','','');
+}
+
+function preselectPppFromAI(arr) {
+  if (!Array.isArray(arr)) return;
+  var allFormy=PPP_FORMY.concat(REWALIDACJA_FORMY);
+  for (var i=0;i<allFormy.length;i++) {
+    var el=document.getElementById(allFormy[i].id);
+    if (el) { el.checked=false; var w=el.closest('.ppp-item'); if(w) w.classList.remove('checked'); var h=document.getElementById(allFormy[i].id+'_hours'); if(h) h.style.display='none'; }
+  }
+  for (var ai=0;ai<arr.length;ai++) {
+    var fs=(arr[ai].forma||'').toLowerCase(); if(!fs) continue;
+    var best=null, score=0;
+    for (var bi=0;bi<allFormy.length;bi++) {
+      var words=fs.split(/\s+/).filter(function(ww){return ww.length>3;}), s=0;
+      for (var wi=0;wi<words.length;wi++){if(allFormy[bi].label.toLowerCase().indexOf(words[wi])>=0)s++;}
+      if(s>score){score=s;best=allFormy[bi];}
+    }
+    if (best&&score>0) {
+      var bel=document.getElementById(best.id);
+      if (bel&&!bel.checked) {
+        bel.checked=true;
+        var bw=bel.closest('.ppp-item'); if(bw) bw.classList.add('checked');
+        var bh=document.getElementById(best.id+'_hours');
+        if(bh){bh.style.display='block';if(arr[ai].wymiar)bh.value=arr[ai].wymiar;}
+      }
+    }
+  }
+}
+
+function getSelectedPppFormy() {
+  var result=[], allFormy=PPP_FORMY.concat(REWALIDACJA_FORMY);
+  for (var i=0;i<allFormy.length;i++) {
+    var el=document.getElementById(allFormy[i].id);
+    if (el&&el.checked) {
+      var h=document.getElementById(allFormy[i].id+'_hours');
+      result.push(allFormy[i].label+' ('+(h?(h.value||allFormy[i].defaultHours):allFormy[i].defaultHours)+')');
+    }
+  }
+  return result;
+}
+
+function addPomocRow(f,s,o,w,os) {
+  f=f||'';s=s||'';o=o||'';w=w||'';os=os||'';
+  var tr=document.createElement('tr');
+  tr.innerHTML='<td style="padding:6px 8px;font-size:.82rem;color:var(--navy);vertical-align:middle">'+(f||'<span style="color:var(--gray2);font-style:italic">—</span>')+'</td>'+
+    '<td><input type="text" value="'+s+'"></td>'+
+    '<td><input type="text" value="'+o+'"></td>'+
+    '<td><input type="text" value="'+w+'"></td>'+
+    '<td><input type="text" value="'+os+'"></td>'+
+    '<td><button class="del-row" onclick="this.closest(\'tr\').remove()">🗑</button></td>';
+  document.getElementById('pomocBody').appendChild(tr);
+}
+
+// ─── addPlanRow — dodaje do edytora ORAZ na żywo do podglądu ───
+function addPlanRow(f,s,o,w) {
+  f=f||'';s=s||'';o=o||'';w=w||'';
+  // 1. Dodaj do planEditBody (edytor ukryty)
+  var tbody=document.getElementById('planEditBody');
+  if (tbody) {
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td style="padding:6px 8px;font-size:.82rem;color:var(--navy)">'+(f||'<span style="color:var(--gray2);font-style:italic">—</span>')+'</td>'+
+      '<td><input type="text" value="'+s+'" placeholder="sposób"></td>'+
+      '<td><input type="text" value="'+o+'" placeholder="okres"></td>'+
+      '<td><input type="text" value="'+w+'" placeholder="wymiar"></td>'+
+      '<td><button class="del-row" onclick="this.closest(\'tr\').remove()">🗑</button></td>';
+    tbody.appendChild(tr);
+  }
+  // 2. Jeśli podgląd planu jest już zbudowany — wstaw wiersz na żywo
+  var previewBody=document.getElementById('plan-pomoc-edit-body');
+  if (previewBody) {
+    // usuń wiersz "Dodaj formy pomocy powyżej" jeśli istnieje
+    var emptyRow=previewBody.querySelector('tr td[colspan]');
+    if (emptyRow) emptyRow.closest('tr').remove();
+    var tr2=document.createElement('tr');
+    tr2.innerHTML=
+      '<td contenteditable="true" data-placeholder="np. Zajęcia korekcyjno-kompensacyjne">'+f+'</td>'+
+      '<td contenteditable="true" data-placeholder="np. indywidualnie">'+s+'</td>'+
+      '<td contenteditable="true" data-placeholder="np. rok szkolny">'+o+'</td>'+
+      '<td contenteditable="true" data-placeholder="np. 45 min/tyg.">'+w+'</td>'+
+      '<td class="no-print"><button class="del-print-row" onclick="this.closest(\'tr\').remove()" title="Usuń wiersz">🗑</button></td>';
+    previewBody.appendChild(tr2);
+  }
+}
+
+function getPlanRows() {
+  var rows=[], allFormy=PPP_FORMY.concat(REWALIDACJA_FORMY);
+  for (var i=0;i<allFormy.length;i++) {
+    var item=allFormy[i], cb=document.getElementById(item.id);
+    if (!cb||!cb.checked) continue;
+    var h=document.getElementById(item.id+'_hours');
+    rows.push({forma:item.label,sposob:'indywidualnie / grupowo',okres:'rok szkolny',wymiar:h?(h.value||item.defaultHours):item.defaultHours});
+  }
+  var ptrs=document.getElementById('pomocBody')?document.getElementById('pomocBody').querySelectorAll('tr'):[];
+  for (var j=0;j<ptrs.length;j++) {
+    var tr=ptrs[j], cells=tr.querySelectorAll('td');
+    var f0=cells[0]?cells[0].textContent.trim():'';
+    if (!f0||f0==='—') continue;
+    var dup=false; for(var di=0;di<rows.length;di++){if(rows[di].forma===f0){dup=true;break;}}
+    if(dup) continue;
+    var inp=tr.querySelectorAll('td input');
+    rows.push({forma:f0,sposob:inp[0]?inp[0].value:'',okres:inp[1]?inp[1].value:'',wymiar:inp[2]?inp[2].value:''});
+  }
+  var planTrs=document.getElementById('planEditBody')?document.getElementById('planEditBody').querySelectorAll('tr'):[];
+  for (var k=0;k<planTrs.length;k++) {
+    var tr2=planTrs[k], cells2=tr2.querySelectorAll('td');
+    var f1=cells2[0]?cells2[0].textContent.trim():'';
+    if (!f1||f1==='—') continue;
+    var dup2=false; for(var di2=0;di2<rows.length;di2++){if(rows[di2].forma===f1){dup2=true;break;}}
+    if(dup2) continue;
+    var inp2=tr2.querySelectorAll('td input');
+    rows.push({forma:f1,sposob:inp2[0]?inp2[0].value:'',okres:inp2[1]?inp2[1].value:'',wymiar:inp2[2]?inp2[2].value:''});
+  }
+  return rows;
+}
+
+// ═══════════════════════════════════════════════════════════
+// DOC TYPE / ETAP
+// ═══════════════════════════════════════════════════════════
+function setDocType(type) {
+  DOC_TYPE=type;
+  var isOrz=type==='orzeczenie';
+  var btnOrz=document.getElementById('dtype-orz'),btnOp=document.getElementById('dtype-op');
+  if(btnOrz){btnOrz.style.background=isOrz?'var(--navy)':'transparent';btnOrz.style.color=isOrz?'white':'var(--gray)';}
+  if(btnOp){btnOp.style.background=!isOrz?'var(--teal)':'transparent';btnOp.style.color=!isOrz?'white':'var(--gray)';}
+  document.getElementById('stp1label').textContent=isOrz?'Orzeczenie':'Opinia';
+  var lz=document.getElementById('labelZalecenia');if(lz) lz.textContent=isOrz?'Zalecenia z orzeczenia':'Zalecenia z opinii poradni';
+  document.getElementById('uploadTitle').textContent=isOrz?'📸 Wgraj zdjęcia orzeczenia':'📸 Wgraj zdjęcia opinii';
+  document.getElementById('manualLabel').textContent='Treść '+(isOrz?'orzeczenia':'opinii')+' (wklej cały tekst)';
+  var s3=document.getElementById('stp3'),s4=document.getElementById('stp4');
+  if(s3) s3.style.display=isOrz?'':'none';
+  if(s4) s4.style.display=isOrz?'':'none';
+  var pw=document.getElementById('pt-wopfu'),pi=document.getElementById('pt-ipet'),pp=document.getElementById('pt-plan');
+  if(pw) pw.style.display=isOrz?'':'none';
+  if(pi) pi.style.display=isOrz?'':'none';
+  if(pp) pp.style.display=isOrz?'none':'';
+}
+
+function setEtap(etap) {
+  ETAP=etap;
+  var cfg={wczesnoszkolna:{id:'etap-wczesno',info:'Klasy 1–3',color:'var(--navy)'},sp:{id:'etap-sp',info:'Klasy 4–8',color:'var(--teal)'},ponadpodstawowa:{id:'etap-pp',info:'Szkoła ponadpodstawowa',color:'#7c3aed'}};
+  var keys=['wczesnoszkolna','sp','ponadpodstawowa'];
+  for (var i=0;i<keys.length;i++) {
+    var btn=document.getElementById(cfg[keys[i]].id); if(!btn) continue;
+    var active=keys[i]===etap;
+    btn.style.background=active?cfg[keys[i]].color:'transparent';
+    btn.style.color=active?'white':'var(--gray)';
+  }
+  var info=document.getElementById('etapInfo'); if(info) info.textContent='✓ '+cfg[etap].info;
+}
+
+function detectEtapFromKlasa(k) {
+  k=k.trim(); var kl=k.toLowerCase();
+  if(kl.indexOf('lo')>=0||kl.indexOf('liceum')>=0||kl.indexOf('tech')>=0){setEtap('ponadpodstawowa');return;}
+  var nm=k.match(/^(\d+)/); if(nm){var n=parseInt(nm[1]);setEtap(n<=3?'wczesnoszkolna':n<=8?'sp':'ponadpodstawowa');return;}
+  var rm=k.match(/^([IVXivx]+)$/i); if(rm){var rn=romanToInt(rm[1]);setEtap(rn<=3?'wczesnoszkolna':rn<=8?'sp':'ponadpodstawowa');}
+}
+
+function romanToInt(s) {
+  var m={I:1,V:5,X:10,L:50,C:100},r=0; s=s.toUpperCase();
+  for(var i=0;i<s.length;i++){var c=m[s[i]]||0,nx=m[s[i+1]]||0;r+=c<nx?-c:c;}
+  return r;
+}
+
+// ═══════════════════════════════════════════════════════════
+// DOSTOSOWANIA
+// ═══════════════════════════════════════════════════════════
+var DOST_DB = {
+  aspergera:{label:'Uczeń w spektrum autyzmu (ASD)',keywords:['asperger','aspergera','asd','spektrum autyzmu','autyzm','autystyczn','f84'],
+    categories:[
+      {title:'Organizacja i środowisko',items:['Zachowanie schematu pracy i stałości działań (ta sama ławka).','Wcześniejsze informowanie o zmianach w planie zajęć.','Eliminowanie bodźców rozpraszających (wzrokowych, słuchowych).','Posadzenie ucznia blisko nauczyciela.','Wyraźne zaznaczanie końca aktywności przed przejściem do następnej.','Zapewnienie spokojnego miejsca w sytuacji wzburzenia.']},
+      {title:'Komunikacja i polecenia',items:['Kierowanie poleceń indywidualnie — zwracanie się po imieniu.','Używanie krótkich zdań i jednoznacznego języka.','Wyjaśnianie metafor, przenośni, ironii, wyrazów wieloznacznych.','Sprawdzanie zrozumienia przez pytania pomocnicze.','Robienie przerw między zdaniami — czas na przetworzenie.']},
+      {title:'Wymagania i ocenianie',items:['Wydłużanie czasu na wykonanie zadań i prac pisemnych.','Dzielenie zadania na wieloetapowe krótsze części.','Zadawanie krótszych prac domowych.','Dostosowanie treści zadań do zainteresowań ucznia.','Na WF — unikanie rywalizacji, losowe przydzielanie do grup.']},
+      {title:'Społeczne i emocjonalne',items:['Dawanie możliwości rozładowywania złości metodami alternatywnymi.','Otoczenie ucznia dyskretną opieką.','Rozwijanie umiejętności rozumienia norm społecznych.','Dbanie o integrację ucznia w grupie.']}
+    ]},
+  adhd:{label:'ADHD / Nadpobudliwość psychoruchowa',keywords:['adhd','nadpobudliwości psychoruchow','nadpobudliwością psychoruchow','hiperkinetyczn'],
+    categories:[
+      {title:'Organizacja i uwaga',items:['Posadzenie ucznia blisko nauczyciela, z dala od okna.','Ograniczenie bodźców rozpraszających.','Stała, przewidywalna struktura lekcji.','Krótkie, jasne polecenia — powtarzane.','Monitorowanie postępów i przywoływanie uwagi.','Dzielenie zadań na mniejsze części.','Przerwy na ruch w ustalonym czasie.']},
+      {title:'Wymagania i motywacja',items:['Wzmocnienia pozytywne za pożądane zachowanie.','Stwarzanie sytuacji zapewniających sukces.','Ocenianie wysiłku i starania, nie tylko efektu.','Konsekwentne egzekwowanie zasad — spokojnie.']}
+    ]},
+  dysleksja:{label:'Dysleksja / dysgrafia / dysortografia',keywords:['dysleksj','dysgrafj','dysortografj','specyficzne trudności'],
+    categories:[
+      {title:'Czytanie i pisanie',items:['Unikanie głośnego czytania przy całej klasie.','Wydłużenie czasu lub zmniejszenie zakresu zadań.','Ograniczenie wymagań kaligraficznych.','Dopuszczenie pisania drukowanymi literami lub na komputerze.','Nieuwzględnianie błędów ortograficznych w ocenie wypracowań.']},
+      {title:'Sprawdziany i ocenianie',items:['Sprawdziany w formie testów, zdań niedokończonych, tekstów z lukami.','Preferowanie wypowiedzi ustnych.','Ocenianie toku rozumowania, nie tylko wyniku.','Niewywoływanie do natychmiastowej odpowiedzi.']}
+    ]},
+  intelektualna:{label:'Niepełnosprawność intelektualna',keywords:['niepełnosprawność intelektualna','upośledzenie umysłowe','intelektualna w stopniu'],
+    categories:[{title:'Metody i wymagania',items:['Omawianie niewielkich partii materiału o mniejszym stopniu trudności.','Nauczanie oparte na konkretach.','Proste, krótkie, jednoznaczne polecenia.','Szerokie stosowanie zasady poglądowości.','Wolniejsze tempo pracy, więcej czasu na utrwalenie.','Przygotowywanie sprawdzianów o niższym stopniu trudności.','Ocenianie postępu, nie tylko efektu końcowego.']}]},
+  niedostosowanie:{label:'Niedostosowanie społeczne',keywords:['niedostosowanie społeczne','zagrożenie niedostosowaniem','zachowania ryzykowne','resocjalizacj','socjoterapeutyczn'],
+    categories:[
+      {title:'Zasady i motywacja',items:['Jasne, stałe zasady — konsekwentne egzekwowanie.','Krótkie, konkretne komunikaty.','Wzmocnienia pozytywne za pożądane zachowania.','Budowanie poczucia bezpieczeństwa i akceptacji.','Budzenie wiary we własne możliwości.','Ścisła współpraca z rodzicami.']},
+      {title:'Emocje i relacje',items:['Kształtowanie umiejętności radzenia sobie z emocjami.','Modelowanie właściwych zachowań społecznych.','Umacnianie odpowiedzialności za własne zachowanie.']}
+    ]}
+};
+
+function detectDiagnoza(tekst) {
+  if (!tekst) return [];
+  var t=tekst.toLowerCase(), result=[];
+  for (var key in DOST_DB) { var kws=DOST_DB[key].keywords; for(var i=0;i<kws.length;i++){if(t.indexOf(kws[i])>=0){result.push(key);break;}} }
+  return result;
+}
+
+function showDostosowaniaPanel(diagnoza) {
+  var matches=detectDiagnoza(diagnoza), panel=document.getElementById('dostPanel');
+  if (!matches.length){panel.style.display='none';return;}
+  document.getElementById('dostDiagLabel').textContent='— '+matches.map(function(m){return DOST_DB[m].label;}).join(', ');
+  var c=document.getElementById('dostCategories'); c.innerHTML='';
+  for (var mi=0;mi<matches.length;mi++) {
+    var db=DOST_DB[matches[mi]]; if(!db||!db.categories) continue;
+    for (var ci=0;ci<db.categories.length;ci++) {
+      var cat=db.categories[ci], div=document.createElement('div');
+      div.innerHTML='<div style="font-size:.72rem;font-weight:700;color:var(--navy);text-transform:uppercase;margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid #d1fae5">'+db.label+' — '+cat.title+'</div>';
+      var items=document.createElement('div'); items.className='dost-items';
+      for (var ii=0;ii<cat.items.length;ii++) {
+        var lbl=document.createElement('label'); lbl.className='dost-item';
+        var cb=document.createElement('input'); cb.type='checkbox'; cb.value=cat.items[ii];
+        cb.style.marginTop='3px';cb.style.flexShrink='0';cb.style.accentColor='var(--teal)';
+        var span=document.createElement('span'); span.textContent=cat.items[ii];
+        lbl.appendChild(cb); lbl.appendChild(span); items.appendChild(lbl);
+      }
+      div.appendChild(items); c.appendChild(div);
+    }
+  }
+  panel.style.display='block';
+}
+
+function applyDostosowania(targetId) {
+  var checked=document.querySelectorAll('#dostCategories input[type=checkbox]:checked');
+  if (!checked.length){alert('Zaznacz przynajmniej jedno dostosowanie.');return;}
+  var items=[];
+  for (var i=0;i<checked.length;i++) items.push('• '+checked[i].value);
+  var el=document.getElementById(targetId); if(!el) return;
+  el.value=el.value.trim()?(el.value.trim()+'\n\n'+items.join('\n')):items.join('\n');
+  for (var j=0;j<checked.length;j++) checked[j].checked=false;
+  var btn=event.target, orig=btn.textContent;
+  btn.textContent='✅ Wstawiono!'; setTimeout(function(){btn.textContent=orig;},1500);
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+// ═══════════════════════════════════════════════════════════
+// KROK 5
+// ═══════════════════════════════════════════════════════════
+var PRZEDMIOTY=['Język polski','Matematyka','Język obcy','Historia','Biologia/Chemia/Fizyka/Geografia','Muzyka/Plastyka/Technika','Wychowanie fizyczne','Informatyka'];
+
+function initDostStep() {
+  var allText=[
+    document.getElementById('f_diagnoza')?document.getElementById('f_diagnoza').value:'',
+    document.getElementById('f_zalecenia')?document.getElementById('f_zalecenia').value:'',
+    document.getElementById('f_trudnosci')?document.getElementById('f_trudnosci').value:'',
+    OCR_TEXT
+  ].join(' ');
+  var detected=[];
+  for (var key in DOST_DB){var kws=DOST_DB[key].keywords;for(var i=0;i<kws.length;i++){if(allText.toLowerCase().indexOf(kws[i])>=0){detected.push(key);break;}}}
+  if (!selectedDiagnozy.length||detected.length) selectedDiagnozy=detected;
+  renderDiagChips(); renderPrzedmiotChips(); renderDostChecksSimple(); renderCustomDostDB();
+}
+
+function renderDiagChips() {
+  var c=document.getElementById('dostDiagChips'); if(!c) return;
+  var html='';
+  for (var key in DOST_DB) {
+    var sel=selectedDiagnozy.indexOf(key)>=0;
+    html+='<button onclick="toggleDiag(\''+key+'\')" style="padding:5px 12px;border-radius:20px;border:2px solid '+(sel?'var(--teal)':'var(--border)')+';background:'+(sel?'rgba(13,148,136,.1)':'white')+';color:'+(sel?'var(--teal)':'var(--gray)')+';font-size:.75rem;font-weight:700;cursor:pointer;font-family:Sora,sans-serif">'+(sel?'✓ ':'')+DOST_DB[key].label+'</button>';
+  }
+  c.innerHTML=html;
+}
+
+function toggleDiag(key) {
+  var idx=selectedDiagnozy.indexOf(key);
+  if(idx>=0) selectedDiagnozy.splice(idx,1); else selectedDiagnozy.push(key);
+  renderDiagChips(); renderDostChecksSimple();
+}
+
+function renderPrzedmiotChips() {
+  var c=document.getElementById('przedmiotChips'); if(!c) return;
+  var html='';
+  for (var i=0;i<PRZEDMIOTY.length;i++) {
+    var p=PRZEDMIOTY[i],sel=selectedPrzedmiot===p;
+    html+='<button onclick="selectPrzedmiot(\''+p+'\')" style="padding:5px 12px;border-radius:20px;border:2px solid '+(sel?'var(--navy)':'var(--border)')+';background:'+(sel?'var(--navy)':'white')+';color:'+(sel?'white':'var(--gray)')+';font-size:.75rem;font-weight:600;cursor:pointer;font-family:Sora,sans-serif">'+p+'</button>';
+  }
+  c.innerHTML=html;
+}
+
+function selectPrzedmiot(p){selectedPrzedmiot=p;document.getElementById('d_przedmiot').value=p;renderPrzedmiotChips();renderDostChecksSimple();}
+
+function setDostMode(mode) {
+  dostMode=mode;
+  document.getElementById('tab-wych').classList.toggle('active',mode==='wych');
+  document.getElementById('tab-nau').classList.toggle('active',mode==='nau');
+  document.getElementById('nauSection').style.display=mode==='nau'?'block':'none';
+  renderDostChecksSimple();
+}
+
+function renderDostChecksSimple() {
+  var c=document.getElementById('dostChecks'); if(!c) return;
+  if (!selectedDiagnozy.length){c.innerHTML='<div style="color:var(--gray);font-size:.8rem;padding:12px">Wybierz diagnozę powyżej.</div>';return;}
+  var html='';
+  for (var di=0;di<selectedDiagnozy.length;di++) {
+    var key=selectedDiagnozy[di],db=DOST_DB[key]; if(!db) continue;
+    html+='<div style="margin-bottom:18px"><div style="font-size:.8rem;font-weight:700;color:var(--teal);text-transform:uppercase;border-bottom:2px solid rgba(13,148,136,.15);padding-bottom:6px;margin-bottom:8px">'+db.label+'</div>';
+    for (var ci=0;ci<db.categories.length;ci++) {
+      var cat=db.categories[ci];
+      html+='<div style="font-size:.72rem;font-weight:700;color:var(--gray);text-transform:uppercase;margin-bottom:5px">'+cat.title+'</div><div class="dost-items">';
+      for (var ii=0;ii<cat.items.length;ii++) {
+        var id='kd_'+key+'_'+ci+'_'+ii;
+        html+='<label class="dost-item"><input type="checkbox" id="'+id+'" data-key="'+key+'" value="'+cat.items[ii].replace(/"/g,'&quot;')+'" checked><span>'+cat.items[ii]+'</span></label>';
+      }
+      html+='</div>';
+    }
+    html+='</div>';
+  }
+  c.innerHTML=html;
+}
+
+function selectAllDost(){document.querySelectorAll('#dostChecks input[type=checkbox]').forEach(function(cb){cb.checked=true;});}
+function clearAllDost(){document.querySelectorAll('#dostChecks input[type=checkbox]').forEach(function(cb){cb.checked=false;});}
+
+var CUSTOM_DOST_KEY='ipet_custom_dost';
+function getCustomDostDB(){try{return JSON.parse(localStorage.getItem(CUSTOM_DOST_KEY)||'[]');}catch(e){return[];}}
+function saveCustomDostDB(arr){try{localStorage.setItem(CUSTOM_DOST_KEY,JSON.stringify(arr));}catch(e){}}
+
+function renderCustomDostDB() {
+  var db=getCustomDostDB(),c=document.getElementById('customDostSaved'); if(!c) return;
+  if (!db.length){c.innerHTML='<div style="font-size:.72rem;color:var(--gray);font-style:italic">Brak zapisanych — wpisz poniżej i kliknij 💾</div>';return;}
+  var html='';
+  for (var i=0;i<db.length;i++) {
+    html+='<label class="dost-item" style="border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;background:white"><input type="checkbox" data-custom="1" value="'+db[i].replace(/"/g,'&quot;')+'" checked><span style="flex:1">'+db[i]+'</span><button onclick="removeCustomDost('+i+')" style="background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:.8rem;padding:0 4px">🗑</button></label>';
+  }
+  c.innerHTML=html;
+}
+
+function removeCustomDost(idx){var db=getCustomDostDB();db.splice(idx,1);saveCustomDostDB(db);renderCustomDostDB();}
+
+function addCustomDost() {
+  var c=document.getElementById('customDostItems'); if(!c) return;
+  var id='cd_'+(++customDostCounter);
+  var div=document.createElement('div'); div.id='wrapcd_'+id; div.style.cssText='display:flex;align-items:center;gap:8px';
+  div.innerHTML='<input type="text" id="'+id+'" placeholder="Wpisz własne dostosowanie..." style="flex:1;padding:8px 12px;border:2px solid var(--border);border-radius:8px;font-family:Sora,sans-serif;font-size:.8rem;color:var(--navy);outline:none">'+
+    '<button onclick="saveCustomDost(\''+id+'\')" style="background:var(--teal);color:white;border:none;border-radius:6px;padding:6px 10px;font-size:.75rem;font-family:Sora,sans-serif;font-weight:700;cursor:pointer;white-space:nowrap">💾</button>'+
+    '<button onclick="document.getElementById(\'wrapcd_'+id+'\').remove()" style="background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:1rem;padding:2px">✕</button>';
+  c.appendChild(div);
+  document.getElementById(id).focus();
+  document.getElementById(id).addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();saveCustomDost(id);}});
+}
+
+function saveCustomDost(id) {
+  var el=document.getElementById(id); if(!el) return;
+  var val=el.value.trim(); if(!val) return;
+  var db=getCustomDostDB(); if(db.indexOf(val)<0){db.push(val);saveCustomDostDB(db);}
+  renderCustomDostDB();
+  var wrap=document.getElementById('wrapcd_'+id); if(wrap) wrap.remove();
+  showToast('✅ Zapisano: '+val.slice(0,40));
+}
+
+function getCustomDostItems() {
+  var checked=document.querySelectorAll('#customDostSaved input[type=checkbox]:checked'), result=[];
+  for (var i=0;i<checked.length;i++) result.push(checked[i].value);
+  return result;
+}
+
+function buildDostOutput() {
+  var checked=document.querySelectorAll('#dostChecks input[type=checkbox]:checked');
+  if (!checked.length){alert('Zaznacz przynajmniej jedno dostosowanie.');return;}
+  var imie=document.getElementById('f_imie')?document.getElementById('f_imie').value:'…';
+  var klasa=document.getElementById('f_klasa')?document.getElementById('f_klasa').value:'…';
+  var rok=document.getElementById('f_rok')?document.getElementById('f_rok').value:'…';
+  var nr=document.getElementById('f_nr_orzeczenia')?document.getElementById('f_nr_orzeczenia').value:'…';
+  var nauczyciel=dostMode==='nau'?(document.getElementById('d_nauczyciel')?document.getElementById('d_nauczyciel').value:''):'';
+  var przedmiot=dostMode==='nau'?(document.getElementById('d_przedmiot')?document.getElementById('d_przedmiot').value:''):'';
+  var diagLabels=selectedDiagnozy.map(function(k){return DOST_DB[k]?DOST_DB[k].label:k;}).join(', ');
+  var groups={};
+  for (var i=0;i<checked.length;i++) {
+    var key=checked[i].getAttribute('data-key')||'';
+    var label=DOST_DB[key]?DOST_DB[key].label:key;
+    if(!groups[label]) groups[label]=[];
+    groups[label].push(checked[i].value);
+  }
+  var custom=getCustomDostItems();
+  if (custom.length) groups['Własne dostosowania nauczyciela']=custom;
+  var tableRows='';
+  for (var grp in groups) {
+    var items=groups[grp];
+    tableRows+='<tr><td style="padding:8px 10px;border:1px solid #ccc;font-weight:600;font-size:9pt;vertical-align:top;width:30%">'+grp+'</td><td style="padding:8px 10px;border:1px solid #ccc;font-size:9pt;vertical-align:top"><ul style="margin:0;padding-left:16px">'+items.map(function(it){return'<li style="margin-bottom:3px">'+it+'</li>';}).join('')+'</ul></td></tr>';
+  }
+  var modeLabel=dostMode==='nau'?'<div><strong>Nauczyciel:</strong> '+(nauczyciel||'…')+' &nbsp;·&nbsp; <strong>Przedmiot:</strong> '+(przedmiot||'…')+'</div>':'<div><strong>Dokument zbiorczy — wszystkie przedmioty</strong></div>';
+  document.getElementById('dostOutput').innerHTML='<div style="font-family:Arial,sans-serif;font-size:10pt;line-height:1.5;color:#000;padding:10px"><div style="text-align:center;font-weight:700;font-size:13pt;text-transform:uppercase;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px">Karta Dostosowań Wymagań Edukacyjnych</div><table style="width:100%;font-size:9.5pt;margin-bottom:12px"><tr><td style="width:50%"><strong>UCZEŃ:</strong> '+imie+'</td><td><strong>KLASA:</strong> '+klasa+' · <strong>ROK:</strong> '+rok+'</td></tr><tr><td><strong>NR ORZECZENIA/OPINII:</strong> '+nr+'</td><td><strong>ROZPOZNANIE:</strong> '+diagLabels+'</td></tr></table><div style="margin-bottom:12px;font-size:9.5pt">'+modeLabel+'</div><table style="width:100%;border-collapse:collapse;margin-bottom:20px"><thead><tr style="background:#1a2f54;color:white"><th style="padding:8px 10px;border:1px solid #ccc;text-align:left;font-size:9pt;width:30%">OBSZAR</th><th style="padding:8px 10px;border:1px solid #ccc;text-align:left;font-size:9pt">DOSTOSOWANIA</th></tr></thead><tbody>'+tableRows+'</tbody></table><div style="margin-top:30px;display:flex;justify-content:space-between;font-size:9pt"><div>Data: ………………………</div><div>Podpis nauczyciela: ……………………………………</div><div>Podpis rodzica: ……………………………………</div></div></div>';
+  document.getElementById('dostOutputCard').style.display='block';
+  document.getElementById('dostOutputCard').scrollIntoView({behavior:'smooth'});
+}
+
+// ═══════════════════════════════════════════════════════════
+// GENEROWANIE CELÓW — naprawione funkcje
+// ═══════════════════════════════════════════════════════════
+function generateCeleSugestie() {
+  var diagnoza=document.getElementById('f_diagnoza')?document.getElementById('f_diagnoza').value:'';
+  var trudnosci=document.getElementById('f_trudnosci')?document.getElementById('f_trudnosci').value:'';
+  if (!diagnoza && !trudnosci) { alert('Najpierw uzupełnij diagnozę lub trudności ucznia (krok 2).'); return; }
+  var panel=document.getElementById('celeSugestiePanel'), list=document.getElementById('celeSugestieList');
+  panel.style.display='block';
+  list.innerHTML='<div style="padding:12px;text-align:center;font-size:.8rem;color:var(--gray)"><span class="spin">⟳</span> Generuję propozycje celów...</div>';
+  panel.scrollIntoView({behavior:'smooth',block:'start'});
+  var prompt='Jesteś specjalistą ds. IPET i WOPFU w polskich szkołach.\n';
+  prompt+='Na podstawie poniższej diagnozy i trudności ucznia zaproponuj 6-8 konkretnych, operacyjnych celów terapeutycznych i edukacyjnych.\n';
+  prompt+='Format JSON: {"cele":[{"obszar":"np. Koncentracja uwagi","ogolny":"Cel ogólny...","operacyjny":"Uczeń będzie...","pomiar":"np. obserwacja, test..."}]}\n';
+  prompt+='Zero tekstu poza JSON.\n\nDIAGNOZA: '+diagnoza+'\nTRUDNOŚCI: '+trudnosci;
+  callClaude([{role:'user',content:prompt}], 3000).then(function(data) {
+    var raw=''; for(var i=0;i<data.content.length;i++){if(data.content[i].type==='text'){raw=data.content[i].text;break;}}
+    var parsed=parseJSON(raw);
+    if (!parsed||!parsed.cele||!parsed.cele.length){list.innerHTML='<div style="padding:10px;font-size:.8rem;color:#dc2626">❌ Nie udało się wygenerować. Spróbuj ponownie.</div>';return;}
+    var html='';
+    for (var i=0;i<parsed.cele.length;i++) {
+      var cel=parsed.cele[i];
+      html+='<div class="cele-item"><div class="cele-item-body">'+
+        '<div class="cele-item-obszar">'+cel.obszar+'</div>'+
+        '<div class="cele-item-ogolny">'+cel.ogolny+'</div>'+
+        '<div style="font-size:.78rem;color:var(--navy);margin-top:3px">'+cel.operacyjny+'</div>'+
+        '<div class="cele-item-pomiar">Pomiar: '+cel.pomiar+'</div></div>'+
+        '<button class="cele-add-btn" onclick="wstawCelSugestie(\''+cel.operacyjny.replace(/'/g,"\\'").replace(/"/g,'&quot;')+'\')">+ Dodaj</button>'+
+        '</div>';
+    }
+    list.innerHTML=html;
+  }).catch(function(err){list.innerHTML='<div style="padding:10px;font-size:.8rem;color:#dc2626">❌ Błąd: '+err.message+'</div>';});
+}
+
+// ─── wstawCelSugestie — naprawiona ───
+function wstawCelSugestie(tekst) {
+  var el=document.getElementById('i_cele_ter');
+  if (!el) return;
+  el.value=el.value.trim()?(el.value.trim()+'\n• '+tekst):('• '+tekst);
+  showToast('✅ Dodano cel');
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function generateCeleAI() {
+  var diagnoza=document.getElementById('f_diagnoza')?document.getElementById('f_diagnoza').value:'';
+  var trudnosci=document.getElementById('f_trudnosci')?document.getElementById('f_trudnosci').value:'';
+  if (!diagnoza&&!trudnosci){alert('Najpierw uzupełnij diagnozę lub trudności ucznia (krok 2).');return;}
+  var statusDiv=document.getElementById('celeAiStatus'), fill=document.getElementById('celeFill'), msg=document.getElementById('celeMsg');
+  statusDiv.style.display='block'; fill.style.width='20%'; msg.textContent='Generuję cele...';
+  var prompt='Na podstawie diagnozy i trudności ucznia napisz po polsku:\n1. Cele terapeutyczne (3-4 punkty)\n2. Cele edukacyjne (3-4 punkty)\nFormat: osobno "TERAPEUTYCZNE:" i "EDUKACYJNE:" z punktami zaczynającymi się od "• ".\n\nDIAGNOZA: '+diagnoza+'\nTRUDNOŚCI: '+trudnosci;
+  callClaude([{role:'user',content:prompt}], 2000).then(function(data) {
+    fill.style.width='100%';
+    var raw=''; for(var i=0;i<data.content.length;i++){if(data.content[i].type==='text'){raw=data.content[i].text;break;}}
+    var elT=document.getElementById('i_cele_ter'), elE=document.getElementById('i_cele_edu');
+    var tIdx=raw.indexOf('TERAPEUTYCZNE:'), eIdx=raw.indexOf('EDUKACYJNE:');
+    if (tIdx>=0&&eIdx>=0) {
+      var tPart=raw.slice(tIdx+14,eIdx).trim(), ePart=raw.slice(eIdx+11).trim();
+      if(elT) elT.value=tPart;
+      if(elE) elE.value=ePart;
+    } else {
+      if(elT) elT.value=raw;
+    }
+    msg.textContent='✅ Cele wpisane automatycznie';
+    setTimeout(function(){statusDiv.style.display='none';},2000);
+  }).catch(function(err){fill.style.width='0%';msg.textContent='❌ Błąd: '+err.message;});
+}
+
+// ═══════════════════════════════════════════════════════════
+// BUILD OUTPUTS
+// ═══════════════════════════════════════════════════════════
+function g(id){return (document.getElementById(id)||{}).value||'';}
+
+function buildOutputs() {
+  var isOrz=DOC_TYPE==='orzeczenie';
+  var pw=document.getElementById('pt-wopfu'),pi=document.getElementById('pt-ipet'),pp=document.getElementById('pt-plan');
+  if(pw) pw.style.display=isOrz?'':'none';
+  if(pi) pi.style.display=isOrz?'':'none';
+  if(pp) pp.style.display=isOrz?'none':'';
+  var editCard=document.getElementById('planEditCard'); if(editCard) editCard.style.display=isOrz?'none':'block';
+  if(isOrz){buildWopfuOutput();buildIpetOutput();showPrint('wopfu');}
+  else{buildPlanPomocy();showPrint('plan');}
+}
+
+function buildWopfuOutput() {
+  var imie=g('f_imie'),klasa=g('f_klasa'),wiek=g('f_wiek'),wychowawca=g('f_wychowawca'),nr=g('f_nr_orzeczenia');
+  var dk=document.getElementById('f_diagnoza_krotka')?document.getElementById('f_diagnoza_krotka').value:'';
+  var rows=[];
+  var trs=document.getElementById('wopfuBody').querySelectorAll('tr');
+  for(var i=0;i<trs.length;i++){var tds=trs[i].querySelectorAll('td textarea');rows.push([(tds[0]?tds[0].value:''),(tds[1]?tds[1].value:''),(tds[2]?tds[2].value:'')]);}
+  var tableRows=rows.map(function(r){return'<tr><td style="padding:8px 10px;border:1px solid #ccc;font-weight:600;vertical-align:top;font-size:9pt">'+r[0]+'</td><td style="padding:8px 10px;border:1px solid #ccc;vertical-align:top;font-size:9pt">'+r[1]+'</td><td style="padding:8px 10px;border:1px solid #ccc;vertical-align:top;font-size:9pt">'+r[2]+'</td></tr>';}).join('');
+  var obszary=collectWopfuAreas();
+  var obszaryRows=obszary.filter(function(o){return o.nazwa;}).map(function(o){return'<tr><td style="padding:8px 10px;border:1px solid #ccc;font-weight:600;font-size:9pt;vertical-align:top;background:#f8fafc">'+o.nazwa+'</td><td style="padding:8px 10px;border:1px solid #ccc;font-size:9pt;vertical-align:top;color:#166534">'+o.zasoby+'</td><td style="padding:8px 10px;border:1px solid #ccc;font-size:9pt;vertical-align:top;color:#dc2626">'+o.trudnosci+'</td><td style="padding:8px 10px;border:1px solid #ccc;font-size:9pt;vertical-align:top;color:#2563eb">'+o.dzialania+'</td></tr>';}).join('');
+  var priorytety=g('w_priorytety');
+  var podpisySrc=[g('w_podpis1'),g('w_podpis2'),g('w_podpis3'),g('w_podpis4')].filter(Boolean);
+  var podpisy=podpisySrc.map(function(p){return'<span style="margin-right:30px">……………………………………<br><small>'+p+'</small></span>';}).join('');
+  document.getElementById('wopfu-output').innerHTML='<div style="font-family:Arial,sans-serif;font-size:10pt;line-height:1.5;color:#000;padding:20px"><div style="text-align:center;font-weight:700;font-size:13pt;margin-bottom:20px;text-transform:uppercase;border-bottom:2px solid #000;padding-bottom:10px">Zbiorczy arkusz wielospecjalistycznej oceny funkcjonowania ucznia</div><table style="width:100%;margin-bottom:12px;font-size:9.5pt"><tr><td style="width:50%"><strong>IMIĘ I NAZWISKO:</strong> '+imie+'</td><td style="width:25%"><strong>KLASA:</strong> '+klasa+'</td><td style="width:25%"><strong>WIEK:</strong> '+wiek+'</td></tr><tr><td><strong>WYCHOWAWCA:</strong> '+wychowawca+'</td><td colspan="2"><strong>NR ORZECZENIA:</strong> '+nr+'</td></tr></table><div style="font-weight:700;margin-bottom:6px;color:#1a2f54;font-size:9.5pt">Rozpoznanie: '+dk+'</div><div style="font-weight:700;margin:12px 0 6px;color:#1a2f54;font-size:9.5pt">Źródła informacji</div><table style="width:100%;border-collapse:collapse;margin-bottom:16px"><thead><tr style="background:#1a2f54;color:white"><th style="padding:7px 10px;border:1px solid #ccc;text-align:left;font-size:9pt;width:22%">ŹRÓDŁO</th><th style="padding:7px 10px;border:1px solid #ccc;text-align:left;font-size:9pt;width:39%">ROZPOZNANIE</th><th style="padding:7px 10px;border:1px solid #ccc;text-align:left;font-size:9pt;width:39%">ZALECENIA</th></tr></thead><tbody>'+tableRows+'</tbody></table><div style="font-weight:700;margin:16px 0 6px;color:#1a2f54;font-size:9.5pt;text-transform:uppercase">Obszary funkcjonowania ucznia</div><table style="width:100%;border-collapse:collapse;margin-bottom:16px"><thead><tr style="background:#1a2f54;color:white"><th style="padding:7px 10px;border:1px solid #ccc;text-align:left;font-size:9pt;width:20%">OBSZAR</th><th style="padding:7px 10px;border:1px solid #ccc;text-align:left;font-size:9pt;width:27%">✅ ZASOBY</th><th style="padding:7px 10px;border:1px solid #ccc;text-align:left;font-size:9pt;width:27%">❌ TRUDNOŚCI</th><th style="padding:7px 10px;border:1px solid #ccc;text-align:left;font-size:9pt;width:26%">➡️ DZIAŁANIA</th></tr></thead><tbody>'+obszaryRows+'</tbody></table>'+(priorytety?'<div style="font-weight:700;margin:12px 0 6px;color:#1a2f54;font-size:9.5pt;text-transform:uppercase">Priorytety</div><div style="font-size:9.5pt;padding:8px;background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:14px">'+priorytety+'</div>':'')+'<div style="margin-top:30px"><strong>PODPISY ZESPOŁU:</strong><br><br>'+(podpisy||'……………………………………')+'</div></div>';
+}
+
+// ═══════════════════════════════════════════════════════════
+// BUILD IPET — z edytowalną tabelą FORMY POMOCY
+// ═══════════════════════════════════════════════════════════
+function buildIpetOutput() {
+  var imie=g('f_imie'),dob=g('f_dob'),szkola=g('f_szkola'),klasa=g('f_klasa'),okres=g('f_okres'),nr=g('f_nr_orzeczenia');
+  var diagnoza=g('f_diagnoza'),zalecenia=g('f_zalecenia'),mocne=g('f_mocne'),trudnosci=g('f_trudnosci');
+  var cT=g('i_cele_ter'),cE=g('i_cele_edu'),tresci=g('i_tresci');
+  var dk=document.getElementById('f_diagnoza_krotka')?document.getElementById('f_diagnoza_krotka').value:'';
+  var pomWspText=g('i_pomoc_wsparcie');
+  var selectedPpp=getSelectedPppFormy();
+  var pomWsp=(selectedPpp.length?'Formy pomocy i rewalidacji: '+selectedPpp.join('; ')+(pomWspText?'\n'+pomWspText:''):pomWspText);
+  var wspolp=g('i_wspolpraca'),opracowal=g('i_opracowal'),dyrektor=g('i_dyrektor'),rodzic=g('i_rodzic');
+
+  // Zbierz wiersze z tabeli form pomocy
+  var pomocRows=[];
+  var pomocTrs=document.getElementById('pomocBody').querySelectorAll('tr');
+  for (var i=0;i<pomocTrs.length;i++) {
+    var cells=pomocTrs[i].querySelectorAll('td');
+    var f0=cells[0]?cells[0].textContent.trim():'';
+    var inputs=pomocTrs[i].querySelectorAll('td input');
+    if (f0&&f0!=='—') pomocRows.push({forma:f0,sposob:inputs[0]?inputs[0].value:'',okres:inputs[1]?inputs[1].value:'',godziny:inputs[2]?inputs[2].value:'',osoby:inputs[3]?inputs[3].value:''});
+  }
+  // Jeśli brak wierszy — dodaj jeden pusty
+  if (!pomocRows.length) pomocRows.push({forma:'',sposob:'',okres:'',godziny:'',osoby:''});
+
+  // ── EDYTOWALNA TABELA FORMY POMOCY ──
+  var edytowalnaTabelka = '<div class="editable-hint no-print">✏️ Kliknij dowolną komórkę, aby uzupełnić lub poprawić dane przed wydrukiem</div>';
+  edytowalnaTabelka += '<table class="print-editable-table"><thead><tr><th>FORMA POMOCY</th><th>SPOSÓB</th><th>OKRES</th><th>GODZINY</th><th>OSOBY REALIZUJĄCE</th><th class="no-print" style="width:30px"></th></tr></thead><tbody id="ipet-pomoc-edit-body">';
+  for (var ri=0;ri<pomocRows.length;ri++) {
+    var r=pomocRows[ri];
+    edytowalnaTabelka += '<tr>'+
+      '<td contenteditable="true" data-placeholder="wpisz formę pomocy">'+r.forma+'</td>'+
+      '<td contenteditable="true" data-placeholder="np. indywidualnie">'+r.sposob+'</td>'+
+      '<td contenteditable="true" data-placeholder="np. rok szkolny">'+r.okres+'</td>'+
+      '<td contenteditable="true" data-placeholder="np. 45 min/tyg.">'+r.godziny+'</td>'+
+      '<td contenteditable="true" data-placeholder="np. pedagog">'+r.osoby+'</td>'+
+      '<td class="no-print"><button class="del-print-row" onclick="this.closest(\'tr\').remove()" title="Usuń wiersz">🗑</button></td>'+
+      '</tr>';
+  }
+  edytowalnaTabelka += '</tbody></table>';
+  edytowalnaTabelka += '<button class="add-print-row-btn no-print" onclick="addIpetPomocRow()">+ Dodaj wiersz</button>';
+
+  var ewaluacjaAreas=['Cele terapeutyczne','Cele edukacyjne','Formy i metody','Dostosowania','Pomoc psych.-pedag.','Współpraca z rodzicami'];
+  var eRows='';
+  for (var ei=1;ei<=6;ei++) {
+    eRows+='<tr><td style="padding:6px 8px;border:1px solid #ccc;font-size:8.5pt">'+ewaluacjaAreas[ei-1]+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:8.5pt">'+g('e'+ei+'_d')+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:8.5pt">'+g('e'+ei+'_w')+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:8.5pt">'+g('e'+ei+'_m')+'</td><td style="padding:6px 8px;border:1px solid #ccc;font-size:8.5pt">'+g('e'+ei+'_u')+'</td></tr>';
+  }
+
+  document.getElementById('ipet-output').innerHTML =
+    '<div style="font-family:Arial,sans-serif;font-size:10pt;line-height:1.5;color:#000;padding:20px">'+
+    '<div style="text-align:center;font-weight:700;font-size:13pt;margin-bottom:6px;text-transform:uppercase">Indywidualny Program Edukacyjno-Terapeutyczny</div>'+
+    '<div style="text-align:center;font-size:9pt;color:#555;margin-bottom:18px;border-bottom:2px solid #000;padding-bottom:10px">IPET</div>'+
+    '<table style="width:100%;font-size:9.5pt;margin-bottom:14px"><tr><td style="width:50%"><strong>IMIĘ I NAZWISKO:</strong> '+imie+'</td><td><strong>DATA URODZENIA:</strong> '+dob+'</td></tr><tr><td><strong>SZKOŁA:</strong> '+szkola+', kl. '+klasa+'</td><td><strong>OKRES IPET:</strong> '+okres+'</td></tr></table>'+
+    '<div style="font-weight:700;margin-bottom:8px;color:#1a2f54;font-size:10pt">Rozpoznanie: '+dk+' (orzeczenie nr '+nr+')</div>'+
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:14px"><thead><tr style="background:#1a2f54;color:white"><th style="padding:7px 10px;border:1px solid #ccc;text-align:left;font-size:9pt;width:50%">DIAGNOZA</th><th style="padding:7px 10px;border:1px solid #ccc;text-align:left;font-size:9pt;width:50%">ZALECENIA</th></tr></thead><tbody><tr><td style="padding:8px 10px;border:1px solid #ccc;vertical-align:top;font-size:9pt">'+diagnoza+'</td><td style="padding:8px 10px;border:1px solid #ccc;vertical-align:top;font-size:9pt">'+zalecenia+'</td></tr></tbody></table>'+
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:14px"><thead><tr style="background:#1a2f54;color:white"><th style="padding:7px 10px;border:1px solid #ccc;text-align:left;font-size:9pt;width:50%">MOCNE STRONY</th><th style="padding:7px 10px;border:1px solid #ccc;text-align:left;font-size:9pt;width:50%">TRUDNOŚCI</th></tr></thead><tbody><tr><td style="padding:8px 10px;border:1px solid #ccc;vertical-align:top;font-size:9pt">'+mocne+'</td><td style="padding:8px 10px;border:1px solid #ccc;vertical-align:top;font-size:9pt">'+trudnosci+'</td></tr></tbody></table>'+
+    '<div style="font-weight:700;margin-bottom:4px;color:#1a2f54;font-size:9.5pt">CELE TERAPEUTYCZNE:</div>'+
+    '<div style="font-size:9.5pt;margin-bottom:10px;white-space:pre-wrap">'+cT+'</div>'+
+    '<div style="font-weight:700;margin-bottom:4px;color:#1a2f54;font-size:9.5pt">CELE EDUKACYJNE:</div>'+
+    '<div style="font-size:9.5pt;margin-bottom:10px;white-space:pre-wrap">'+cE+'</div>'+
+    '<div style="font-weight:700;margin-bottom:4px;color:#1a2f54;font-size:9.5pt">ZASADNICZE TREŚCI PROGRAMOWE:</div>'+
+    '<div style="font-size:9.5pt;margin-bottom:10px">'+tresci+'</div>'+
+    '<div style="font-weight:700;margin-bottom:4px;color:#1a2f54;font-size:9.5pt">RODZAJ POMOCY I WSPARCIA:</div>'+
+    '<div style="font-size:9.5pt;margin-bottom:14px;white-space:pre-wrap">'+pomWsp+'</div>'+
+    '<div style="font-weight:700;margin-bottom:8px;color:#1a2f54;text-transform:uppercase;font-size:9.5pt">Formy pomocy</div>'+
+    edytowalnaTabelka +
+    '<div style="font-weight:700;margin-bottom:4px;color:#1a2f54;font-size:9.5pt">WSPÓŁPRACA Z RODZICAMI:</div>'+
+    '<div style="font-size:9.5pt;margin-bottom:14px">'+wspolp+'</div>'+
+    '<div style="font-weight:700;margin-bottom:8px;color:#1a2f54;text-transform:uppercase;font-size:9.5pt">Ewaluacja</div>'+
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:20px"><thead><tr style="background:#1a2f54;color:white"><th style="padding:6px 8px;border:1px solid #ccc;text-align:left;font-size:8.5pt;width:22%">OBSZAR</th><th style="padding:6px 8px;border:1px solid #ccc;text-align:left;font-size:8.5pt;width:12%">DATA</th><th style="padding:6px 8px;border:1px solid #ccc;text-align:left;font-size:8.5pt">WNIOSKI</th><th style="padding:6px 8px;border:1px solid #ccc;text-align:left;font-size:8.5pt">MODYFIKACJE</th><th style="padding:6px 8px;border:1px solid #ccc;text-align:left;font-size:8.5pt">UWAGI</th></tr></thead><tbody>'+eRows+'</tbody></table>'+
+    '<div style="display:flex;gap:20px;margin-top:20px;font-size:9pt"><div style="flex:1;border:1px solid #ccc;padding:10px 14px"><div style="font-size:8pt;color:#555;margin-bottom:4px;font-weight:700">ZATWIERDZA DYREKTOR</div><div style="min-height:30px">'+dyrektor+'</div></div><div style="flex:1;border:1px solid #ccc;padding:10px 14px"><div style="font-size:8pt;color:#555;margin-bottom:4px;font-weight:700">RODZIC/OPIEKUN</div><div style="min-height:30px">'+rodzic+'</div></div></div>'+
+    '</div>';
+}
+
+// ─── Dodaj wiersz do edytowalnej tabeli w podglądzie ───
+function addIpetPomocRow() {
+  var tbody=document.getElementById('ipet-pomoc-edit-body'); if(!tbody) return;
+  var tr=document.createElement('tr');
+  tr.innerHTML=
+    '<td contenteditable="true" data-placeholder="wpisz formę pomocy"></td>'+
+    '<td contenteditable="true" data-placeholder="np. indywidualnie"></td>'+
+    '<td contenteditable="true" data-placeholder="np. rok szkolny"></td>'+
+    '<td contenteditable="true" data-placeholder="np. 45 min/tyg."></td>'+
+    '<td contenteditable="true" data-placeholder="np. pedagog"></td>'+
+    '<td class="no-print"><button class="del-print-row" onclick="this.closest(\'tr\').remove()" title="Usuń wiersz">🗑</button></td>';
+  tbody.appendChild(tr);
+  tr.querySelector('[contenteditable]').focus();
+}
+
+function buildPlanPomocy() {
+  var imie=g('f_imie'),klasa=g('f_klasa'),rok=g('f_rok'),szkola=g('f_szkola'),wychowawca=g('f_wychowawca'),nr=g('f_nr_orzeczenia');
+  var diagnoza=g('f_diagnoza'),zalecenia=g('f_zalecenia'),mocne=g('f_mocne'),trudnosci=g('f_trudnosci');
+
+  // Zbierz wiersze z planEditBody
+  var planRows=[];
+  var planTrs=document.getElementById('planEditBody').querySelectorAll('tr');
+  for (var i=0;i<planTrs.length;i++) {
+    var cells=planTrs[i].querySelectorAll('td'), f0=cells[0]?cells[0].textContent.trim():'';
+    var inputs=planTrs[i].querySelectorAll('td input');
+    if (f0&&f0!=='—') planRows.push({forma:f0,sposob:inputs[0]?inputs[0].value:'',okres:inputs[1]?inputs[1].value:'',wymiar:inputs[2]?inputs[2].value:''});
+  }
+  // jeśli brak — dodaj pusty wiersz
+  if (!planRows.length) planRows.push({forma:'',sposob:'',okres:'',wymiar:''});
+
+  // ── EDYTOWALNA TABELKA FORMY POMOCY w podglądzie planu ──
+  var edytowalnaTabelka = '<div class="editable-hint no-print">✏️ Kliknij komórkę, aby uzupełnić lub poprawić dane przed wydrukiem</div>';
+  edytowalnaTabelka += '<table class="print-editable-table"><thead><tr><th>FORMA POMOCY</th><th>SPOSÓB</th><th>OKRES</th><th>WYMIAR GODZIN</th><th class="no-print" style="width:30px"></th></tr></thead><tbody id="plan-pomoc-edit-body">';
+  for (var ri=0;ri<planRows.length;ri++) {
+    var r=planRows[ri];
+    edytowalnaTabelka += '<tr>'+
+      '<td contenteditable="true" data-placeholder="np. Zajęcia korekcyjno-kompensacyjne">'+r.forma+'</td>'+
+      '<td contenteditable="true" data-placeholder="np. indywidualnie">'+r.sposob+'</td>'+
+      '<td contenteditable="true" data-placeholder="np. rok szkolny">'+r.okres+'</td>'+
+      '<td contenteditable="true" data-placeholder="np. 45 min/tyg.">'+r.wymiar+'</td>'+
+      '<td class="no-print"><button class="del-print-row" onclick="this.closest(\'tr\').remove()" title="Usuń wiersz">🗑</button></td>'+
+      '</tr>';
+  }
+  edytowalnaTabelka += '</tbody></table>';
+  edytowalnaTabelka += '<button class="add-print-row-btn no-print" onclick="addPlanPomocRow()">+ Dodaj wiersz</button>';
+
+  document.getElementById('plan-output').innerHTML=
+    '<div style="font-family:Arial,sans-serif;font-size:10pt;line-height:1.5;color:#000;padding:10px">'+
+    '<div style="text-align:center;font-weight:700;font-size:13pt;text-transform:uppercase;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:14px">Plan Działań Wspierających<br><span style="font-size:10pt;font-weight:400">(na podstawie opinii poradni)</span></div>'+
+    '<table style="width:100%;font-size:9.5pt;margin-bottom:14px">'+
+    '<tr><td style="width:50%"><strong>UCZEŃ:</strong> '+imie+'</td><td><strong>KLASA:</strong> '+klasa+'</td></tr>'+
+    '<tr><td><strong>SZKOŁA:</strong> '+szkola+'</td><td><strong>ROK SZKOLNY:</strong> '+rok+'</td></tr>'+
+    '<tr><td><strong>WYCHOWAWCA:</strong> '+wychowawca+'</td><td><strong>NR OPINII:</strong> '+nr+'</td></tr>'+
+    '</table>'+
+    '<div style="font-weight:700;font-size:10pt;color:#1a2f54;margin:12px 0 6px;text-transform:uppercase">Mocne strony</div>'+
+    '<div style="font-size:9.5pt;padding:8px;background:#f8fafc;border-radius:6px;margin-bottom:12px;min-height:40px">'+mocne+'</div>'+
+    '<div style="font-weight:700;font-size:10pt;color:#1a2f54;margin:12px 0 6px;text-transform:uppercase">Trudności</div>'+
+    '<div style="font-size:9.5pt;padding:8px;background:#f8fafc;border-radius:6px;margin-bottom:12px;min-height:40px">'+trudnosci+'</div>'+
+    '<div style="font-weight:700;font-size:10pt;color:#1a2f54;margin:12px 0 6px;text-transform:uppercase">Zalecenia z opinii</div>'+
+    '<div style="font-size:9.5pt;padding:8px;background:#f8fafc;border-radius:6px;margin-bottom:14px;min-height:60px">'+zalecenia+'</div>'+
+    '<div style="font-weight:700;font-size:10pt;color:#1a2f54;margin:12px 0 6px;text-transform:uppercase">Formy pomocy</div>'+
+    edytowalnaTabelka +
+    '<div style="display:flex;justify-content:space-between;font-size:9pt;margin-top:20px">'+
+    '<div>Wychowawca: ……………………………</div><div>Pedagog: ……………………………</div><div>Rodzic: ……………………………</div>'+
+    '</div></div>';
+}
+
+// ─── Dodaj wiersz do edytowalnej tabeli w podglądzie planu pomocy ───
+function addPlanPomocRow() {
+  var tbody=document.getElementById('plan-pomoc-edit-body'); if(!tbody) return;
+  var tr=document.createElement('tr');
+  tr.innerHTML=
+    '<td contenteditable="true" data-placeholder="np. Zajęcia korekcyjno-kompensacyjne"></td>'+
+    '<td contenteditable="true" data-placeholder="np. indywidualnie"></td>'+
+    '<td contenteditable="true" data-placeholder="np. rok szkolny"></td>'+
+    '<td contenteditable="true" data-placeholder="np. 45 min/tyg."></td>'+
+    '<td class="no-print"><button class="del-print-row" onclick="this.closest(\'tr\').remove()" title="Usuń wiersz">🗑</button></td>';
+  tbody.appendChild(tr);
+  tr.querySelector('[contenteditable]').focus();
+}
+
+function showPrint(doc) {
+  ['wopfu','ipet','plan'].forEach(function(d){
+    var el=document.getElementById('print-'+d); if(el) el.style.display=doc===d?'block':'none';
+    var tab=document.getElementById('pt-'+d); if(tab) tab.classList.toggle('active',doc===d);
+  });
+}
+
+function getPrintCSS() {
+  return '<style>body{font-family:Arial,sans-serif;font-size:10pt;color:#000;padding:20px;max-width:900px;margin:0 auto}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6px 8px;font-size:9pt}thead tr{background:#1a2f54;color:white}.print-btn{position:fixed;top:12px;right:12px;background:#0f1f3d;color:white;border:none;padding:10px 22px;border-radius:8px;font-size:13px;cursor:pointer;z-index:999}.no-print{}.print-editable-table{width:100%;border-collapse:collapse;margin-bottom:14px}.print-editable-table th{background:#1a2f54;color:white;padding:8px 10px;font-size:9pt;text-align:left;font-weight:600;border:1px solid #ccc}.print-editable-table td{border:1px solid #ccc;padding:0;vertical-align:middle}.print-editable-table td[contenteditable]{padding:7px 9px;font-size:9pt;font-family:Arial,sans-serif;min-height:32px;outline:none;transition:background .15s}.print-editable-table td[contenteditable]:focus{background:#fffbeb;box-shadow:inset 0 0 0 2px #f59e0b}.print-editable-table td[contenteditable]:empty:before{content:attr(data-placeholder);color:#aaa;font-style:italic;pointer-events:none}.print-editable-table tr:nth-child(even) td{background:#f9fafb}.editable-hint{display:flex;align-items:center;gap:8px;background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:10pt;color:#92400e;margin-bottom:10px}.add-print-row-btn{display:block;width:100%;padding:9px;border:2px dashed #e2e8f0;border-top:none;background:#f8fafc;color:#64748b;cursor:pointer;font-size:11pt;font-family:Arial,sans-serif;transition:all .15s;text-align:center;margin-bottom:16px}.add-print-row-btn:hover{background:#eef2ff;color:#0f1f3d}.del-print-row{background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:1rem;padding:4px 8px}.del-print-row:hover{color:#ef4444}@media print{.print-btn,.no-print,.editable-hint,.add-print-row-btn,.del-print-row{display:none!important}@page{margin:1.5cm;size:A4}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:0}.print-editable-table td[contenteditable]{background:white!important;box-shadow:none!important;padding:7px 9px}.print-editable-table td[contenteditable]:empty:before{content:\'\'!important}}</style>';
+}
+
+function getPrintJS() {
+  return '<script>'+
+    'function addIpetPomocRow(){var tbody=document.getElementById("ipet-pomoc-edit-body");if(!tbody)return;var tr=document.createElement("tr");tr.innerHTML=\'<td contenteditable="true" data-placeholder="wpisz formę pomocy"></td><td contenteditable="true" data-placeholder="np. indywidualnie"></td><td contenteditable="true" data-placeholder="np. rok szkolny"></td><td contenteditable="true" data-placeholder="np. 45 min/tyg."></td><td contenteditable="true" data-placeholder="np. pedagog"></td><td class="no-print"><button class="del-print-row" onclick="this.closest(\\\'tr\\\').remove()">🗑</button></td>\';tbody.appendChild(tr);tr.querySelector("[contenteditable]").focus();}'+
+    'function addPlanPomocRow(){var tbody=document.getElementById("plan-pomoc-edit-body");if(!tbody)return;var tr=document.createElement("tr");tr.innerHTML=\'<td contenteditable="true" data-placeholder="np. Zajęcia korekcyjno-kompensacyjne"></td><td contenteditable="true" data-placeholder="np. indywidualnie"></td><td contenteditable="true" data-placeholder="np. rok szkolny"></td><td contenteditable="true" data-placeholder="np. 45 min/tyg."></td><td class="no-print"><button class="del-print-row" onclick="this.closest(\\\'tr\\\').remove()">🗑</button></td>\';tbody.appendChild(tr);tr.querySelector("[contenteditable]").focus();}'+
+    'setTimeout(function(){window.print();},800);'+
+    '<\/script>';
+}
+
+function openPrintWindow(htmlContent) {
+  var fullHtml='<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8"><title>Dokument</title>'+getPrintCSS()+'</head><body><button class="print-btn" onclick="window.print()">🖨️ Drukuj / Zapisz PDF</button>'+htmlContent+getPrintJS()+'</body></html>';
+  var blob=new Blob([fullHtml],{type:'text/html;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var win=window.open(url,'_blank');
+  if (!win){var a=document.createElement('a');a.href=url;a.download='dokument.html';a.click();showToast('Pobierz plik i otwórz w przeglądarce.');}
+}
+
+function printDoc() {
+  var active=document.querySelector('.out-tab.active'), id=active?active.id:'pt-wopfu';
+  var html='';
+  if(id==='pt-wopfu') html=(document.getElementById('wopfu-output')||{}).innerHTML||'';
+  else if(id==='pt-ipet') html=(document.getElementById('ipet-output')||{}).innerHTML||'';
+  else if(id==='pt-plan') html=(document.getElementById('plan-output')||{}).innerHTML||'';
+  if (!html.trim()){alert('Brak treści do wydruku.');return;}
+  openPrintWindow(html);
+}
+
+function printDocDost() {
+  var html=(document.getElementById('dostOutput')||{}).innerHTML||'';
+  if (!html.trim()){alert('Najpierw wygeneruj kartę.');return;}
+  openPrintWindow(html);
+}
+
+function regenerateAI() {
+  if (!IMAGES.length){alert('Brak zdjęć. Wróć do kroku 1.');return;}
+  goStep(1); setTimeout(analyzeImages,300);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ZAPIS UCZNIÓW
+// ═══════════════════════════════════════════════════════════
+var STORE_KEY='ipet_wopfu_students';
+function getStudents(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'[]');}catch(e){return[];}}
+function saveStudents(arr){try{localStorage.setItem(STORE_KEY,JSON.stringify(arr));}catch(e){}}
+
+function collectFormData() {
+  var fields=['f_imie','f_dob','f_pesel','f_szkola','f_klasa','f_wiek','f_wychowawca','f_rok','f_okres','f_nr_orzeczenia','f_data_orzeczenia','f_poradnia','f_rodzice','f_diagnoza_krotka','f_diagnoza','f_zalecenia','f_mocne','f_trudnosci'];
+  var data={doc_type:DOC_TYPE,etap:ETAP,ts:Date.now()};
+  for(var i=0;i<fields.length;i++){var el=document.getElementById(fields[i]);if(el) data[fields[i]]=el.value;}
+  data.wopfu_obszary_data=collectWopfuAreas();
+  var wopfuRows=[], wtrs=document.querySelectorAll('#wopfuBody tr');
+  for(var j=0;j<wtrs.length;j++){var tds=wtrs[j].querySelectorAll('td textarea');wopfuRows.push([(tds[0]?tds[0].value:''),(tds[1]?tds[1].value:''),(tds[2]?tds[2].value:'')]);}
+  data.wopfu_rows=wopfuRows;
+  var pomocRows=[], ptrs=document.querySelectorAll('#pomocBody tr');
+  for(var k=0;k<ptrs.length;k++){var cells=ptrs[k].querySelectorAll('td');var f0=cells[0]?cells[0].textContent.trim():'';var inputs=ptrs[k].querySelectorAll('td input');pomocRows.push([f0,inputs[0]?inputs[0].value:'',inputs[1]?inputs[1].value:'',inputs[2]?inputs[2].value:'',inputs[3]?inputs[3].value:'']);}
+  data.pomoc_rows=pomocRows;
+  var ipetFields=['i_cele_ter','i_cele_edu','i_tresci','i_pomoc_wsparcie','i_wspolpraca','i_opracowal','i_dyrektor','i_rodzic','w_priorytety'];
+  for(var m=0;m<ipetFields.length;m++){var iel=document.getElementById(ipetFields[m]);if(iel) data[ipetFields[m]]=iel.value;}
+  return data;
+}
+
+function saveCurrentStudent() {
+  var data=collectFormData(), imie=data['f_imie']||'Bez nazwy';
+  if (!imie.trim()){alert('Najpierw wpisz imię i nazwisko ucznia.');return;}
+  var students=getStudents();
+  if (CURRENT_STUDENT_ID) {
+    var idx=-1;
+    for(var i=0;i<students.length;i++){if(students[i].id===CURRENT_STUDENT_ID){idx=i;break;}}
+    if(idx>=0) students[idx]=Object.assign({},students[idx],data,{name:imie,klasa:data['f_klasa'],id:CURRENT_STUDENT_ID});
+    else students.push(Object.assign({},data,{name:imie,klasa:data['f_klasa'],id:CURRENT_STUDENT_ID}));
+  } else {
+    CURRENT_STUDENT_ID='stu_'+Date.now();
+    students.push(Object.assign({},data,{name:imie,klasa:data['f_klasa'],id:CURRENT_STUDENT_ID}));
+  }
+  saveStudents(students); renderStudentList(); showToast('✅ Zapisano: '+imie);
+}
+
+function loadStudent(id) {
+  var students=getStudents(), s=null;
+  for(var i=0;i<students.length;i++){if(students[i].id===id){s=students[i];break;}}
+  if(!s) return;
+  CURRENT_STUDENT_ID=id;
+  DOC_TYPE=s.doc_type||'orzeczenie'; setDocType(DOC_TYPE);
+  setEtap(s.etap||'sp'); fillFields(s);
+  if(s.wopfu_obszary_data&&s.wopfu_obszary_data.length){var ac=document.getElementById('wopfuAreas');if(ac){ac.innerHTML='';for(var j=0;j<s.wopfu_obszary_data.length;j++){var o=s.wopfu_obszary_data[j];addWopfuArea(o.nazwa,o.zasoby,o.trudnosci,o.dzialania);}}}
+  if(s.wopfu_rows){var tb=document.getElementById('wopfuBody');if(tb){tb.innerHTML='';for(var wj=0;wj<s.wopfu_rows.length;wj++){var r=s.wopfu_rows[wj];addWopfuRow(r[0]||'',r[1]||'',r[2]||'');}}}
+  if(s.pomoc_rows){var tb2=document.getElementById('pomocBody');if(tb2){tb2.innerHTML='';for(var pk=0;pk<s.pomoc_rows.length;pk++){var pr=s.pomoc_rows[pk];addPomocRow(pr[0]||'',pr[1]||'',pr[2]||'',pr[3]||'',pr[4]||'');}}}
+  var ipetF=['i_cele_ter','i_cele_edu','i_tresci','i_pomoc_wsparcie','i_wspolpraca','i_opracowal','i_dyrektor','i_rodzic','w_priorytety'];
+  for(var fi=0;fi<ipetF.length;fi++){var fel=document.getElementById(ipetF[fi]);if(fel&&s[ipetF[fi]])fel.value=s[ipetF[fi]];}
+  toggleStudentList(); goStep(2); showToast('📂 Wczytano: '+s.name);
+}
+
+function newStudent() {
+  var imieVal=document.getElementById('f_imie')?document.getElementById('f_imie').value:'';
+  if(CURRENT_STUDENT_ID||imieVal){if(!confirm('Wyczyścić formularz i zacząć od nowa?')) return;}
+  CURRENT_STUDENT_ID=null;
+  var clearFields=['f_imie','f_dob','f_pesel','f_szkola','f_klasa','f_wiek','f_wychowawca','f_rok','f_okres','f_nr_orzeczenia','f_data_orzeczenia','f_poradnia','f_rodzice','f_diagnoza','f_zalecenia','f_mocne','f_trudnosci','f_diagnoza_krotka'];
+  for(var i=0;i<clearFields.length;i++){var el=document.getElementById(clearFields[i]);if(el) el.value='';}
+  IMAGES=[];
+  document.getElementById('previewGrid').innerHTML='';
+  document.getElementById('ocrCard').style.display='none';
+  document.getElementById('btnAnalyze').disabled=true;
+  var tb=document.getElementById('wopfuBody');if(tb){tb.innerHTML='';initWopfu({});}
+  var tb2=document.getElementById('pomocBody');if(tb2){tb2.innerHTML='';addPomocRow('','','','','');}
+  toggleStudentList(); goStep(1);
+}
+
+function sortName(name){var parts=(name||'').trim().split(/\s+/);if(parts.length>=2)return parts.slice(1).join(' ')+' '+parts[0];return name||'';}
+
+function renderStudentList() {
+  var students=getStudents(), cnt=document.getElementById('studentCount');
+  if(cnt) cnt.textContent=students.length?'('+students.length+')':'';
+  var cont=document.getElementById('studentListContent'); if(!cont) return;
+  if(!students.length){cont.innerHTML='<div class="student-empty">Brak zapisanych uczniów.</div>';return;}
+  students.sort(function(a,b){var na=sortName(a.name||'').toLowerCase(),nb=sortName(b.name||'').toLowerCase();return na.localeCompare(nb,'pl');});
+  cont.innerHTML='';
+  students.forEach(function(s) {
+    var parts=(s.name||'').trim().split(/\s+/);
+    var displayName=parts.length>=2?parts.slice(1).join(' ')+' '+parts[0]:(s.name||'Bez nazwy');
+    var date=s.ts?new Date(s.ts).toLocaleDateString('pl-PL'):'';
+    var type=s.doc_type==='opinia'?'📝':'📋';
+    var div=document.createElement('div'); div.className='student-item';
+    var icon=document.createElement('span'); icon.style.fontSize='1.2rem'; icon.textContent=type;
+    var info=document.createElement('div'); info.style.flex='1';
+    info.innerHTML='<div class="si-name">'+displayName+'</div><div class="si-meta">kl. '+(s.klasa||'—')+' · '+date+'</div>';
+    var delBtn=document.createElement('button'); delBtn.className='si-del'; delBtn.title='Usuń ucznia'; delBtn.textContent='🗑';
+    delBtn.addEventListener('click',function(e){
+      e.stopPropagation();e.preventDefault();
+      if(!confirm('Usunąć dane ucznia '+s.name+'?')) return;
+      var all=getStudents().filter(function(x){return x.id!==s.id;});
+      saveStudents(all); if(CURRENT_STUDENT_ID===s.id) CURRENT_STUDENT_ID=null;
+      renderStudentList(); showToast('🗑 Usunięto: '+s.name);
+    });
+    div.addEventListener('click',function(){loadStudent(s.id);});
+    div.appendChild(icon); div.appendChild(info); div.appendChild(delBtn); cont.appendChild(div);
+  });
+}
+
+function toggleStudentList(){var body=document.getElementById('studentListBody'),arrow=document.getElementById('studentArrow');if(!body) return;body.classList.toggle('open');if(arrow) arrow.textContent=body.classList.contains('open')?'▲':'▼';}
+function toggleManual(){var s=document.getElementById('manualSection'),a=document.getElementById('manualArrow');var h=s.style.display==='none';s.style.display=h?'block':'none';a.textContent=h?'▲ zwiń':'▼ rozwiń';}
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+var _loadingStudent=false;
+
+function goStep(n) {
+  if(DOC_TYPE==='opinia'&&(n===3||n===4)) n=5;
+  if(n===6) buildOutputs();
+  if(!_loadingStudent&&CURRENT_STUDENT_ID&&n>1){try{saveCurrentStudent();}catch(e){}}
+  if(n===5) initDostStep();
+  if(n===4) initStep4();
+  CURRENT_STEP=n;
+  for(var i=1;i<=6;i++){var el=document.getElementById('step'+i);if(el) el.classList.toggle('hidden',i!==n);var stp=document.getElementById('stp'+i);if(stp){stp.classList.remove('active','done');if(i===n) stp.classList.add('active');else if(i<n) stp.classList.add('done');}}
+  if(n===2){var btn=document.getElementById('step2NextBtn');if(btn){if(DOC_TYPE==='opinia'){btn.textContent='Dalej: Dostosowania →';btn.onclick=function(){goStep(5);};}else{btn.textContent='Dalej: WOPFU →';btn.onclick=function(){goStep(3);};}}}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT EWALUACJA
+// ═══════════════════════════════════════════════════════════
+function initEwaluacja() {
+  var tbody=document.getElementById('ewaluacjaBody'); if(!tbody) return;
+  var areas=['Cele terapeutyczne','Cele edukacyjne','Formy i metody','Dostosowania','Pomoc psych.-pedag.','Współpraca z rodzicami'];
+  var html='';
+  for(var i=0;i<areas.length;i++){var n=i+1;html+='<tr><td><input type="text" value="'+areas[i]+'"></td><td><input type="text" id="e'+n+'_d"></td><td><textarea id="e'+n+'_w"></textarea></td><td><textarea id="e'+n+'_m"></textarea></td><td><textarea id="e'+n+'_u"></textarea></td></tr>';}
+  tbody.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════════════════
+initApiKey();
+initWopfu({});
+addPomocRow('','','','','');
+initEwaluacja();
+renderStudentList();
+setEtap('sp');
+setDocType('orzeczenie');
+
+// Eksport globalny
+window.wstawCelSugestie=wstawCelSugestie;
+window.generateCeleSugestie=generateCeleSugestie;
+window.generateCeleAI=generateCeleAI;
+window.addIpetPomocRow=addIpetPomocRow;
+window.openFormyModal=openFormyModal;
+window.closeFormyModal=closeFormyModal;
+window.confirmFormyModal=confirmFormyModal;
+window.filterFormyList=filterFormyList;
+window.selectForma=selectForma;
+window.saveApiKey=saveApiKey;
+window.goStep=goStep;
+window.setDocType=setDocType;
+window.setEtap=setEtap;
+window.handleFiles=handleFiles;
+window.handleDrop=handleDrop;
+window.removeImg=removeImg;
+window.analyzeImages=analyzeImages;
+window.analyzeText=analyzeText;
+window.toggleManual=toggleManual;
+window.toggleStudentList=toggleStudentList;
+window.newStudent=newStudent;
+window.saveCurrentStudent=saveCurrentStudent;
+window.loadStudent=loadStudent;
+window.addWopfuRow=addWopfuRow;
+window.addWopfuArea=addWopfuArea;
+window.addPomocRow=addPomocRow;
+window.addPlanRow=addPlanRow;
+window.addPlanPomocRow=addPlanPomocRow;
+window.pppToggle=pppToggle;
+window.showDostosowaniaPanel=showDostosowaniaPanel;
+window.applyDostosowania=applyDostosowania;
+window.toggleDiag=toggleDiag;
+window.selectPrzedmiot=selectPrzedmiot;
+window.setDostMode=setDostMode;
+window.selectAllDost=selectAllDost;
+window.clearAllDost=clearAllDost;
+window.addCustomDost=addCustomDost;
+window.saveCustomDost=saveCustomDost;
+window.removeCustomDost=removeCustomDost;
+window.buildDostOutput=buildDostOutput;
+window.showPrint=showPrint;
+window.printDoc=printDoc;
+window.printDocDost=printDocDost;
+window.regenerateAI=regenerateAI;
+window.detectEtapFromKlasa=detectEtapFromKlasa;
+</script>
+</body>
+</html>
