@@ -741,7 +741,7 @@ function initApiKey() {
 // CLAUDE API
 // ═══════════════════════════════════════════════════════════
 function callClaude(messages, maxTokens) {
-  maxTokens = maxTokens || 8000;
+  maxTokens = maxTokens || 2500;
   var key = getApiKey();
   var headers = { 'Content-Type':'application/json', 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' };
   if (key) headers['x-api-key'] = key;
@@ -791,13 +791,93 @@ function parseJSON(str) {
 // PROMPT
 // ═══════════════════════════════════════════════════════════
 function buildPrompt(txt) {
-  var base = 'Jesteś ekspertem od polskich dokumentów oświatowych.\n';
-  base += txt ? 'Przeanalizuj poniższy tekst dokumentu.\n' : 'Przeanalizuj przesłany dokument.\n';
-  base += 'Zwróć WYŁĄCZNIE obiekt JSON — zacznij od { i skończ na }. Zero tekstu przed ani po. Zero markdown.\n\n';
-  base += '{"typ_dokumentu":"orzeczenie","imie_nazwisko":"","data_urodzenia":"","pesel":"","szkola":"","klasa":"","wychowawca":"","nr_orzeczenia":"","data_orzeczenia":"","poradnia":"","rodzice":"","diagnoza_krotka":"","diagnoza":"","zalecenia":"","mocne_strony":"","trudnosci":"","cele_terapeutyczne":"","cele_edukacyjne":"","wspolpraca_rodzice":"","formy_pomocy":[{"forma":"","sposob":"","okres":"","wymiar":"","osoby":""}],"wopfu_obszary":[{"nazwa":"","zasoby":"","trudnosci":"","dzialania":""}],"tresci_programowe":"","pomoc_wsparcie":""}\n\n';
-  base += 'ZASADY:\n1. typ_dokumentu: TYLKO z nagłówka\n2. diagnoza_krotka: max 5 słów\n3. zalecenia: warunki realizacji lub wskazówki\n4. wopfu_obszary: 8 obszarów\n5. Puste pole = ""\n';
-  if (txt) base += '\nTEKST DOKUMENTU:\n' + txt;
-  return base;
+  let prompt = `
+Jesteś specjalistą w zakresie polskich dokumentów oświatowych (IPET, WOPFU).
+Wypełniasz FORMULARZ – nie piszesz opisu ani opinii.
+
+ZWROT:
+Zwróć WYŁĄCZNIE poprawny obiekt JSON.
+Zacznij od { i zakończ na }.
+Nie dodawaj żadnego tekstu przed ani po JSON.
+Nie używaj markdown.
+
+--------------------------------
+FORMAT DOKUMENTU (SZTYWNY):
+--------------------------------
+{
+  "typ_dokumentu": "orzeczenie | opinia",
+
+  "imie_nazwisko": "",
+  "data_urodzenia": "",
+  "pesel": "",
+  "szkola": "",
+  "klasa": "",
+  "wychowawca": "",
+
+  "nr_orzeczenia": "",
+  "data_orzeczenia": "",
+  "poradnia": "",
+  "rodzice": "",
+
+  "diagnoza_krotka": "",
+  "diagnoza": "",
+  "zalecenia": "",
+
+  "mocne_strony": "",
+  "trudnosci": "",
+
+  "formy_pomocy": [
+    {
+      "forma": "",
+      "sposob": "",
+      "okres": "",
+      "wymiar": "",
+      "osoby": ""
+    }
+  ],
+
+  "wopfu_obszary": [
+    {
+      "nazwa": "",
+      "zasoby": "",
+      "trudnosci": "",
+      "dzialania": ""
+    }
+  ],
+
+  "cele_terapeutyczne": "",
+  "cele_edukacyjne": "",
+  "tresci_programowe": "",
+  "pomoc_wsparcie": "",
+  "wspolpraca_rodzice": ""
+}
+
+--------------------------------
+ZASADY KLUCZOWE:
+--------------------------------
+- To jest FORMULARZ, nie opis.
+- Każde pole: maks. 1–2 zdania.
+- Język urzędowy, szkolny.
+- Brak uzasadnień, brak definicji.
+- Jeśli brak danych → "".
+
+--------------------------------
+WAŻNE:
+--------------------------------
+To dokument szkolny do druku (IPET / WOPFU).
+Treści muszą być krótkie, tabelaryczne i syntetyczne.
+`;
+
+  if (txt) {
+    prompt += `
+--------------------------------
+TEKST DOKUMENTU:
+--------------------------------
+${txt}
+`;
+  }
+
+  return prompt;
 }
 
 // ═══════════════════════════════════════════════════════════
