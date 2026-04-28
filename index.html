@@ -1081,6 +1081,7 @@ document.getElementById('ocrMsg').innerHTML =
   '✅ Gotowe! <button onclick="goStep(2)" style="background:var(--teal);color:white;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:Sora,sans-serif;font-size:.75rem;margin-left:8px">Przejdź dalej →</button>';
 
 if (parsed && parsed.typ_dokumentu === 'orzeczenie') {
+  document.getElementById('ocrMsg').style.display = 'none';
   // ✅ 2‑PROMPT TYLKO DLA WOPFU
   generateWopfuTwoPrompt(raw).then(function (wopfuData) {
     parsed.wopfu_obszary = wopfuData.wopfu_obszary || [];
