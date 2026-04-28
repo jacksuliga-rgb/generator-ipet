@@ -1016,8 +1016,12 @@ OCR_TEXT = raw;
     document.getElementById('ocrPreview').style.display='block';
     var parsed = parseJSON(raw);
 
+// ✅ ZAWSZE ustaw status „OK” po poprawnym parsowaniu JSON
 document.getElementById('ocrMsg').innerHTML =
-  '✅ Gotowe! <button onclick="goStep(2)" style="background:var(--teal);color:white;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:Sora,sans-serif;font-size:.75rem;margin-left:8px">Przejdź dalej →</button>';
+  '✅ Dane odczytane poprawnie. <button onclick="goStep(2)" ' +
+  'style="background:var(--teal);color:white;border:none;padding:4px 12px;' +
+  'border-radius:6px;cursor:pointer;font-family:Sora,sans-serif;font-size:.75rem;margin-left:8px">' +
+  'Przejdź dalej →</button>';
 
 if (parsed && parsed.typ_dokumentu === 'orzeczenie') {
   // ✅ 2‑PROMPT TYLKO DLA WOPFU
