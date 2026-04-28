@@ -1014,28 +1014,37 @@ OCR_TEXT = raw;
 
     document.getElementById('ocrText').textContent=raw.length>600?raw.slice(0,600)+'...':raw;
     document.getElementById('ocrPreview').style.display='block';
-    var parsed = parseJSON(raw);
+   var parsed = parseJSON(raw);
 
-// ✅ ZAWSZE ustaw status „OK” po poprawnym parsowaniu JSON
-document.getElementById('ocrMsg').innerHTML =
-  '✅ Dane odczytane poprawnie. <button onclick="goStep(2)" ' +
-  'style="background:var(--teal);color:white;border:none;padding:4px 12px;' +
-  'border-radius:6px;cursor:pointer;font-family:Sora,sans-serif;font-size:.75rem;margin-left:8px">' +
-  'Przejdź dalej →</button>';
+// ✅ TWARDY WARUNEK SUKCESU – JAK W ARTEFAKTACH CLAUDE
+if (parsed && parsed.typ_dokumentu) {
+  // ZAWSZE nadpisz status błędu
+  document.getElementById('ocrMsg').innerHTML =
+    '✅ Dane odczytane poprawnie. <button onclick="goStep(2)" ' +
+    'style="background:var(--teal);color:white;border:none;padding:4px 12px;' +
+    'border-radius:6px;cursor:pointer;font-family:Sora,sans-serif;font-size:.75rem;margin-left:8px">' +
+    'Przejdź dalej →</button>';
 
-if (parsed && parsed.typ_dokumentu === 'orzeczenie') {
-  // ✅ 2‑PROMPT TYLKO DLA WOPFU
-  generateWopfuTwoPrompt(raw).then(function (wopfuData) {
-    parsed.wopfu_obszary = wopfuData.wopfu_obszary || [];
+  // 🔁 2‑prompt TYLKO JAKO OPCJA
+  if (parsed.typ_dokumentu === 'orzeczenie') {
+    generateWopfuTwoPrompt(raw)
+      .then(function (wopfuData) {
+        parsed.wopfu_obszary = wopfuData.wopfu_obszary || [];
+        applyParsed(parsed);
+      })
+      .catch(function () {
+        // ✅ fallback – ZAWSZE idziemy dalej
+        applyParsed(parsed);
+      });
+  } else {
     applyParsed(parsed);
-  }).catch(function () {
-    // fallback — jakby 2. prompt padł
-    applyParsed(parsed);
-  });
-} else {
-  // ✅ opinia lub fallback
-  applyParsed(parsed);
+  }
+
+  return; // ⬅️ WAŻNE: kończymy analyzeImages
 }
+
+// ⛔ TYLKO JEŚLI JSON JEST NAPRAWDĘ PUSTY
+window.showError('Nie udało się odczytać danych');
 
   }).catch(function(err) {
   console.warn('2‑prompt WOPFU failed – fallback to 1‑prompt', err);
