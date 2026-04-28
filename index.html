@@ -1002,9 +1002,14 @@ function analyzeImages() {
   document.getElementById('ocrMsg').textContent='AI czyta dokument...';
   callClaude([{role:'user',content:content}]).then(function(data) {
     document.getElementById('ocrFill').style.width='85%';
-    var raw='';
-    for (var i=0;i<data.content.length;i++) { if(data.content[i].type==='text'){raw=data.content[i].text;break;} }
-    OCR_TEXT=raw;
+    var raw = '';
+for (var i = 0; i < data.content.length; i++) {
+  if (data.content[i].type === 'text') {
+    raw += data.content[i].text + '\n';
+  }
+}
+OCR_TEXT = raw;
+
     document.getElementById('ocrText').textContent=raw.length>600?raw.slice(0,600)+'...':raw;
     document.getElementById('ocrPreview').style.display='block';
     var parsed = parseJSON(raw);
