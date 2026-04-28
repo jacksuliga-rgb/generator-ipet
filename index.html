@@ -1014,37 +1014,33 @@ OCR_TEXT = raw;
 
     document.getElementById('ocrText').textContent=raw.length>600?raw.slice(0,600)+'...':raw;
     document.getElementById('ocrPreview').style.display='block';
-   var parsed = parseJSON(raw);
+   
+  var parsed = parseJSON(raw);
 
-// ✅ TWARDY WARUNEK SUKCESU – JAK W ARTEFAKTACH CLAUDE
-if (parsed && parsed.typ_dokumentu) {
-  // ZAWSZE nadpisz status błędu
-  document.getElementById('ocrMsg').innerHTML =
-    '✅ Dane odczytane poprawnie. <button onclick="goStep(2)" ' +
-    'style="background:var(--teal);color:white;border:none;padding:4px 12px;' +
-    'border-radius:6px;cursor:pointer;font-family:Sora,sans-serif;font-size:.75rem;margin-left:8px">' +
-    'Przejdź dalej →</button>';
+  if (parsed && parsed.typ_dokumentu) {
 
-  // 🔁 2‑prompt TYLKO JAKO OPCJA
-  if (parsed.typ_dokumentu === 'orzeczenie') {
-    generateWopfuTwoPrompt(raw)
-      .then(function (wopfuData) {
-        parsed.wopfu_obszary = wopfuData.wopfu_obszary || [];
-        applyParsed(parsed);
-      })
-      .catch(function () {
-        // ✅ fallback – ZAWSZE idziemy dalej
-        applyParsed(parsed);
-      });
-  } else {
-    applyParsed(parsed);
+    // status OK
+    document.getElementById('ocrMsg').style.display = 'none';
+
+    if (parsed.typ_dokumentu === 'orzeczenie') {
+      generateWopfuTwoPrompt(raw)
+        .then(function (wopfuData) {
+          parsed.wopfu_obszary = wopfuData.wopfu_obszary || [];
+          applyParsed(parsed);
+        })
+        .catch(function () {
+          applyParsed(parsed); // fallback
+        });
+    } else {
+      // opinia
+      applyParsed(parsed);
+    }
+
+    return; // ✅ TU JEST OK – BO JEST W FUNKCJI
   }
 
-  return; // ⬅️ WAŻNE: kończymy analyzeImages
+  showError('Nie udało się odczytać danych');
 }
-
-// ⛔ TYLKO JEŚLI JSON JEST NAPRAWDĘ PUSTY
-window.showError('Nie udało się odczytać danych');
 
   }).catch(function(err) {
   console.warn('2‑prompt WOPFU failed – fallback to 1‑prompt', err);
@@ -1107,19 +1103,13 @@ if (parsed && parsed.typ_dokumentu === 'orzeczenie') {
 function applyParsed(parsed) {
   if (!parsed) return;
 
-  // zapamiętaj dane globalnie
   LAST_PARSED_DATA = parsed;
-
-  // pokaż formularz (krok 2)
   goStep(2);
 
-  // ⬇️⬇️⬇️ TO JEST TEN BRAKUJĄCY ELEMENT ⬇️⬇️⬇️
-  // wypełnij formularz DOPIERO GDY JEST W DOM
   setTimeout(function () {
     fillFields(LAST_PARSED_DATA);
   }, 0);
 }
-
 
   const isOpinia = parsed.typ_dokumentu === 'opinia';
 
