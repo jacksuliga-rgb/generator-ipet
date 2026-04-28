@@ -1034,10 +1034,15 @@ if (parsed && parsed.typ_dokumentu === 'orzeczenie') {
 }
 
   }).catch(function(err) {
-    document.getElementById('ocrMsg').textContent='❌ Błąd: '+err.message;
-    document.getElementById('ocrFill').style.width='0%';
-    btn.disabled=false; btn.innerHTML='🤖 Analizuj dokument';
-  });
+  console.warn('2‑prompt WOPFU failed – fallback to 1‑prompt', err);
+
+  // ✅ NAJWAŻNIEJSZA LINIA
+  applyParsed(parsed);
+
+  document.getElementById('ocrFill').style.width='100%';
+  btn.disabled=false; 
+  btn.innerHTML='🤖 Analizuj dokument';
+});
 }
 
 function analyzeText() {
@@ -1075,10 +1080,10 @@ if (parsed && parsed.typ_dokumentu === 'orzeczenie') {
   applyParsed(parsed);
 }
 
-  }).catch(function(err) {
-    document.getElementById('ocrMsg').textContent='❌ Błąd: '+err.message;
-    document.getElementById('ocrFill').style.width='0%';
-  }).finally(function() { btn.disabled=false; btn.innerHTML='🤖 Analizuj tekst'; });
+ }).catch(function(err) {
+  console.warn('2-prompt WOPFU failed, fallback:', err);
+  applyParsed(parsed); // ⬅️ KRYTYCZNE
+});
 }
 
 // ═══════════════════════════════════════════════════════════
