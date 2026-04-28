@@ -2351,6 +2351,16 @@ function showError(msg) {
   }
 }
 ``
+  // ✅ GLOBAL FALLBACK – musi być poza wszystkimi funkcjami
+window.showError = function (msg) {
+  var el = document.getElementById('ocrMsg');
+  if (el) {
+    el.innerHTML = '❌ ' + msg;
+  } else {
+    console.error(msg);
+    alert(msg);
+  }
+};
 </script>
 </body>
 </html>
