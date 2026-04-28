@@ -585,6 +585,7 @@ var selectedPrzedmiot = null;
 var dostMode = 'wych';
 var customDostCounter = 0;
 var formyModalTarget = 'ipet';
+var PARSED_FACTS = null;
 
 // ═══════════════════════════════════════════════════════════
 // SŁOWNIK FORM POMOCY
@@ -881,6 +882,69 @@ FORMAT JSON – BEZ ZMIAN:
   return prompt;
 }
 ``
+function buildFactsPrompt(txt) {
+  return `
+Jesteś analitykiem dokumentów oświatowych.
+Nie tworzysz WOPFU ani IPET.
+
+Twoje zadanie:
+- wyciągnąć informacje JAWNE z dokumentu
+- przypisać je do kategorii
+- NIE wnioskować, NIE dopisywać
+
+Zwróć WYŁĄCZNIE JSON:
+
+{
+  "objawy_ruchowe": [],
+  "objawy_sensoryczne": [],
+  "objawy_poznawcze": [],
+  "objawy_emocjonalne": [],
+  "objawy_spoleczne": [],
+  "objawy_komunikacyjne": [],
+  "samodzielnosc": [],
+  "zalecenia": []
+}
+
+TEKST:
+${txt}
+`;
+}
+function buildWopfuPromptFromFacts(facts) {
+  return `
+Tworzysz WOPFU WYŁĄCZNIE na podstawie danych wejściowych.
+Nie masz dostępu do orzeczenia.
+
+MAPA ŹRÓDEŁ:
+- motoryka → objawy_ruchowe
+- sensoryka → objawy_sensoryczne
+- komunikacja → objawy_komunikacyjne
+- poznawcza → objawy_poznawcze
+- emocjonalna → objawy_emocjonalne
+- społeczna → objawy_spoleczne
+- samoobsługa → samodzielnosc
+
+ZASADY:
+- 1–2 zdania
+- jeśli brak danych → ""
+- nie mieszaj obszarów
+
+DANE:
+${JSON.stringify(facts, null, 2)}
+
+Zwróć WYŁĄCZNIE JSON:
+
+{
+  "wopfu_obszary": [
+    {
+      "nazwa": "Ogólna sprawność fizyczna (motoryka duża)",
+      "zasoby": "",
+      "trudnosci": "",
+      "dzialania": ""
+    }
+  ]
+}
+`;
+}
 
 // ═══════════════════════════════════════════════════════════
 // PLIKI
@@ -971,11 +1035,25 @@ function analyzeText() {
     OCR_TEXT=raw;
     document.getElementById('ocrText').textContent=raw.length>600?raw.slice(0,600)+'...':raw;
     document.getElementById('ocrPreview').style.display='block';
-    var parsed=parseJSON(raw);
-    document.getElementById('ocrFill').style.width='100%';
-    if (!parsed||!Object.keys(parsed).length) { document.getElementById('ocrMsg').innerHTML='❌ Nie udało się odczytać danych.'; btn.disabled=false; btn.innerHTML='🤖 Analizuj tekst'; return; }
-    document.getElementById('ocrMsg').innerHTML='✅ Dane odczytane. <button onclick="goStep(2)" style="background:var(--teal);color:white;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:Sora,sans-serif;font-size:.75rem;margin-left:8px">Przejdź dalej →</button>';
+    var parsed = parseJSON(raw);
+
+document.getElementById('ocrMsg').innerHTML =
+  '✅ Gotowe! <button onclick="goStep(2)" style="background:var(--teal);color:white;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:Sora,sans-serif;font-size:.75rem;margin-left:8px">Przejdź dalej →</button>';
+
+if (parsed && parsed.typ_dokumentu === 'orzeczenie') {
+  // ✅ 2‑PROMPT TYLKO DLA WOPFU
+  generateWopfuTwoPrompt(raw).then(function (wopfuData) {
+    parsed.wopfu_obszary = wopfuData.wopfu_obszary || [];
     applyParsed(parsed);
+  }).catch(function () {
+    // fallback — jakby 2. prompt padł
+    applyParsed(parsed);
+  });
+} else {
+  // ✅ opinia lub fallback
+  applyParsed(parsed);
+}
+
   }).catch(function(err) {
     document.getElementById('ocrMsg').textContent='❌ Błąd: '+err.message;
     document.getElementById('ocrFill').style.width='0%';
@@ -1332,6 +1410,23 @@ function setDocType(type) {
   if(pw) pw.style.display=isOrz?'':'none';
   if(pi) pi.style.display=isOrz?'':'none';
   if(pp) pp.style.display=isOrz?'none':'';
+}
+async function generateWopfuTwoPrompt(txt) {
+  // PROMPT A – analiza
+  const factsResp = await callClaude(
+    [{ role: 'user', content: buildFactsPrompt(txt) }],
+    4000
+  );
+
+  PARSED_FACTS = parseJSON(factsResp.content[0].text);
+
+  // PROMPT B – WOPFU
+  const wopfuResp = await callClaude(
+    [{ role: 'user', content: buildWopfuPromptFromFacts(PARSED_FACTS) }],
+    1500
+  );
+
+  return parseJSON(wopfuResp.content[0].text);
 }
 
 function setEtap(etap) {
