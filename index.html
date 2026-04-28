@@ -2332,6 +2332,15 @@ window.printDoc=printDoc;
 window.printDocDost=printDocDost;
 window.regenerateAI=regenerateAI;
 window.detectEtapFromKlasa=detectEtapFromKlasa;
+function showError(msg) {
+  var el = document.getElementById('ocrMsg');
+  if (el) {
+    el.innerHTML = '❌ ' + msg;
+  } else {
+    alert(msg);
+  }
+}
+``
 </script>
 </body>
 </html>
