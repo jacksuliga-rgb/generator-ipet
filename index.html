@@ -1017,12 +1017,12 @@ OCR_TEXT = raw;
    
   var parsed = parseJSON(raw);
 
-  if (parsed && parsed.typ_dokumentu) {
+  {
 
     // status OK
     document.getElementById('ocrMsg').style.display = 'none';
 
-    if (parsed.typ_dokumentu === 'orzeczenie') {
+ {
       generateWopfuTwoPrompt(raw)
         .then(function (wopfuData) {
           parsed.wopfu_obszary = wopfuData.wopfu_obszary || [];
