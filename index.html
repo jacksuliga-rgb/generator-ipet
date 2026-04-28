@@ -1105,25 +1105,21 @@ if (parsed && parsed.typ_dokumentu === 'orzeczenie') {
 // APPLY PARSED
 // ═══════════════════════════════════════════════════════════
 function applyParsed(parsed) {
-  console.log('APPLY PARSED:', parsed);
+  if (!parsed) return;
 
-  // TEST NA SZTYWNO – JEDNO POLE
-  const test = document.getElementById('f_imie');
-  if (test) {
-    test.value = 'TEST TEST';
-  } else {
-    console.error('Nie znaleziono inputa f_imie');
-  }
+  // zapamiętaj dane globalnie
+  LAST_PARSED_DATA = parsed;
 
-  // reszta funkcji...
+  // pokaż formularz (krok 2)
+  goStep(2);
 
-  function applyParsed(parsed) {
-  if (!parsed || !parsed.typ_dokumentu) {
-    showError('Nie udało się odczytać danych');
-    return;
-  }
+  // ⬇️⬇️⬇️ TO JEST TEN BRAKUJĄCY ELEMENT ⬇️⬇️⬇️
+  // wypełnij formularz DOPIERO GDY JEST W DOM
+  setTimeout(function () {
+    fillFields(LAST_PARSED_DATA);
+  }, 0);
+}
 
-  fillFields(parsed);
 
   const isOpinia = parsed.typ_dokumentu === 'opinia';
 
