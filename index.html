@@ -1145,27 +1145,31 @@ function applyParsed(parsed) {
 // FILL FIELDS
 // ═══════════════════════════════════════════════════════════
 function fillFields(p) {
-  if (!p||typeof p!=='object') return;
-  function set(id,val){var el=document.getElementById(id);if(el&&val!=null&&val!=='')el.value=val;}
-  set('f_imie',p.imie_nazwisko||p.f_imie); set('f_dob',p.data_urodzenia||p.f_dob);
-  set('f_pesel',p.pesel||p.f_pesel); set('f_szkola',p.szkola||p.f_szkola);
-  set('f_klasa',p.klasa||p.f_klasa); set('f_wiek',p.f_wiek);
-  set('f_wychowawca',p.wychowawca||p.f_wychowawca); set('f_rok',p.f_rok); set('f_okres',p.f_okres);
-  set('f_nr_orzeczenia',p.nr_orzeczenia||p.f_nr_orzeczenia); set('f_data_orzeczenia',p.data_orzeczenia||p.f_data_orzeczenia);
-  set('f_poradnia',p.poradnia||p.f_poradnia); set('f_rodzice',p.rodzice||p.f_rodzice);
-  set('f_diagnoza_krotka',p.diagnoza_krotka||p.f_diagnoza_krotka); set('f_diagnoza',p.diagnoza||p.f_diagnoza);
-  set('f_zalecenia',p.zalecenia||p.f_zalecenia); set('f_mocne',p.mocne_strony||p.f_mocne);
-  set('f_trudnosci',p.trudnosci||p.f_trudnosci);
-  if (!p.f_wiek&&p.data_urodzenia) {
-    var m=p.data_urodzenia.match(/(\d{1,2})[.\-](\d{1,2})[.\-](\d{4})/);
-    if (m) document.getElementById('f_wiek').value=(new Date().getFullYear()-parseInt(m[3]))+' lat';
-  }
-  var now=new Date(), yr=now.getMonth()>=8?now.getFullYear():now.getFullYear()-1;
-  if (!document.getElementById('f_rok').value) document.getElementById('f_rok').value=yr+'/'+(yr+1);
-  if (!document.getElementById('f_okres').value) document.getElementById('f_okres').value='I okres edukacyjny';
-  var klasa=document.getElementById('f_klasa').value; if (klasa) detectEtapFromKlasa(klasa);
-}
+  if (!p) return;
 
+  const map = {
+    f_imie: p.imie_nazwisko,
+    f_dob: p.data_urodzenia,
+    f_pesel: p.pesel,
+    f_szkola: p.szkola,
+    f_klasa: p.klasa,
+    f_wychowawca: p.wychowawca,
+    f_nr_orzeczenia: p.nr_orzeczenia,
+    f_data_orzeczenia: p.data_orzeczenia,
+    f_poradnia: p.poradnia,
+    f_rodzice: p.rodzice,
+    f_diagnoza_krotka: p.diagnoza_krotka,
+    f_diagnoza: p.diagnoza
+  };
+
+  for (const id in map) {
+    const el = document.getElementById(id);
+    if (el && map[id]) {
+      el.value = map[id];
+    }
+  }
+}
+``
 // ═══════════════════════════════════════════════════════════
 // WOPFU
 // ═══════════════════════════════════════════════════════════
