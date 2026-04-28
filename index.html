@@ -636,7 +636,9 @@ var HOURS_HINTS = [
   ['umiejętności społecznych','60 min / tydzień'],['arteterapia','60 min / tydzień'],
   ['biofeedback','60 min / tydzień']
 ];
-
+function showError(msg) {
+  document.getElementById('ocrMsg').innerHTML = '❌ ' + msg;
+}
 // ═══════════════════════════════════════════════════════════
 // MODAL FORMY POMOCY
 // ═══════════════════════════════════════════════════════════
