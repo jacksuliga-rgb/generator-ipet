@@ -1036,13 +1036,14 @@ if (parsed && parsed.typ_dokumentu === 'orzeczenie') {
   }).catch(function(err) {
   console.warn('2‑prompt WOPFU failed – fallback to 1‑prompt', err);
 
-  // ✅ NAJWAŻNIEJSZA LINIA
+  // ✅ KLUCZOWA LINIA – BEZ TEGO ZAWSZE BĘDZIE „NIE UDAŁO SIĘ”
   applyParsed(parsed);
 
-  document.getElementById('ocrFill').style.width='100%';
-  btn.disabled=false; 
-  btn.innerHTML='🤖 Analizuj dokument';
+  document.getElementById('ocrFill').style.width = '100%';
+  btn.disabled = false;
+  btn.innerHTML = '🤖 Analizuj dokument';
 });
+``
 }
 
 function analyzeText() {
