@@ -1007,11 +1007,25 @@ function analyzeImages() {
     OCR_TEXT=raw;
     document.getElementById('ocrText').textContent=raw.length>600?raw.slice(0,600)+'...':raw;
     document.getElementById('ocrPreview').style.display='block';
-    var parsed=parseJSON(raw);
-    document.getElementById('ocrFill').style.width='100%';
-    if (!parsed||!Object.keys(parsed).length) { document.getElementById('ocrMsg').innerHTML='❌ Nie udało się odczytać danych.'; btn.disabled=false; btn.innerHTML='🤖 Analizuj dokument'; return; }
-    document.getElementById('ocrMsg').innerHTML='✅ Gotowe! <button onclick="goStep(2)" style="background:var(--teal);color:white;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:Sora,sans-serif;font-size:.75rem;margin-left:8px">Przejdź dalej →</button>';
+    var parsed = parseJSON(raw);
+
+document.getElementById('ocrMsg').innerHTML =
+  '✅ Gotowe! <button onclick="goStep(2)" style="background:var(--teal);color:white;border:none;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:Sora,sans-serif;font-size:.75rem;margin-left:8px">Przejdź dalej →</button>';
+
+if (parsed && parsed.typ_dokumentu === 'orzeczenie') {
+  // ✅ 2‑PROMPT TYLKO DLA WOPFU
+  generateWopfuTwoPrompt(raw).then(function (wopfuData) {
+    parsed.wopfu_obszary = wopfuData.wopfu_obszary || [];
     applyParsed(parsed);
+  }).catch(function () {
+    // fallback — jakby 2. prompt padł
+    applyParsed(parsed);
+  });
+} else {
+  // ✅ opinia lub fallback
+  applyParsed(parsed);
+}
+
   }).catch(function(err) {
     document.getElementById('ocrMsg').textContent='❌ Błąd: '+err.message;
     document.getElementById('ocrFill').style.width='0%';
